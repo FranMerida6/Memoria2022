@@ -1,0 +1,176 @@
+#Recuerda: ruts=duplicados_4[10:20] fue el ocupado para ejemplo de la tesis.
+#ruts=duplicados_4[0:70] fue el usado para mostrar el solapamiento.
+
+
+import pandas as pd
+#Aquí modificar según ruta de descarga del archivo.
+ruta_importacion='C:/Users/edgar/Downloads/EVENTOS_2/df_unificacion_8.csv'
+df_unificacion=pd.read_csv(filepath_or_buffer=ruta_importacion)
+df_unificacion=df_unificacion.drop(['Unnamed: 0'],axis=1)
+
+
+import networkx as nx
+import matplotlib.pyplot as plt
+from datetime import datetime
+import numpy as np
+import plotly.graph_objects as go
+from plotly.offline import download_plotlyjs,init_notebook_mode,plot
+import networkx as nx
+import pyodbc
+import cx_Oracle
+import plotly.express as px
+
+
+#Aquí cambiar según patología a graficar.
+#En este apartado se filtra la data según la patología que padezca el paciente y
+#según si está asociado al convenio oncológico que ofrece FALP.
+patologia='MAMA'
+t_conv='CON CONVENIO'
+estado='Defunción'
+
+
+df_prueba=df_unificacion[(df_unificacion['PATOLOGIA_2']==patologia)]
+df_prueba.index=range(df_prueba.shape[0])
+
+df_prueba=df_prueba.iloc[df_prueba.index[(df_prueba['C_ONCOLOGICO']==t_conv)].tolist()]
+df_prueba.index=range(df_prueba.shape[0])
+
+df_prueba=df_prueba.iloc[df_prueba.index[(df_prueba['MACRO_EVENTO']==estado)].tolist()]
+df_prueba.index=range(df_prueba.shape[0])
+
+
+#En este apartado se obtiene una lista con todos los RUTs sin duplicar que
+#cumplen con los filtros explicados anteriormente.
+lista_rut_diag=df_prueba[df_prueba.columns[1]].tolist()
+duplicados_4=[]
+i=0
+while i<len(lista_rut_diag):
+    if lista_rut_diag[i] not in duplicados_4:
+        duplicados_4.append(lista_rut_diag[i])
+        i=i+1
+    else:
+        i=i+1
+
+print(len(duplicados_4))
+
+
+#En este apartado se crea un diccionario según la estructura que ofrece la
+#librería plotly.
+data={'x':[],'y':[],'colors':[],'eventos':[]}
+
+
+#En este apartado se crea una lista que incluya muchos códigos de colores que
+#Python reconoce. Esta lista es la que será utilizada posteriormente para
+#colorear cada uno de los nodos de las rutas (lamentablemente, de manera
+#aleatoria porque se desconoce cómo configar esta característica en específico).
+lista_colores=[]
+k=0
+while k<len(px.colors.qualitative.Alphabet):
+    lista_colores.append(px.colors.qualitative.Alphabet[k])
+    k=k+1
+r=0
+while r<len(px.colors.qualitative.Antique):
+    lista_colores.append(px.colors.qualitative.Antique[r])
+    r=r+1
+w=0
+while w<len(px.colors.qualitative.Light24):
+    lista_colores.append(px.colors.qualitative.Light24[w])
+    w=w+1
+p=0
+while p<len(px.colors.qualitative.Dark24):
+    lista_colores.append(px.colors.qualitative.Dark24[p])
+    p=p+1
+q=0
+while q<len(px.colors.qualitative.D3):
+    lista_colores.append(px.colors.qualitative.D3[q])
+    q=q+1
+v=0
+while v<len(px.colors.qualitative.Vivid):
+    lista_colores.append(px.colors.qualitative.Vivid[v])
+    v=v+1
+t=0
+while t<len(px.colors.qualitative.Bold):
+    lista_colores.append(px.colors.qualitative.Bold[t])
+    t=t+1
+
+len(lista_colores)
+
+
+#En este apartado se seleccionan de la lista realizada anteriormente (que incluye
+#todos los RUTs asociados a una única patología) solamente los primeros 15. La
+#razón de este escogimiento arbitrario radica en la dificultad existente de
+#graficar muchas rutas a la vez mediante la librería plotly. Graficar a la vez
+#entre 10 y 15 rutas permite la correcta visualización de todas y no impide
+#divisar claramente las características individuales de cada una de ellas.
+
+
+#Aquí se muestra la totalidad de pacientes.
+#ruts=duplicados_4
+#Aquí se muestran los primeros 15 pacientes.
+ruts=duplicados_4[0:70]
+#Aquí se muestran los últimos 10 pacientes.
+#ruts=duplicados_4[len(duplicados_4)-10:len(duplicados_4)]
+
+
+#En este apartado se va a buscar a la base de datos la información
+#correspondiente a cada RUT específico a graficar. 
+for rut in ruts:
+    lista_fecha=[]
+    lista_fecha=df_unificacion.iloc[df_unificacion.index[(df_unificacion['RUT']==rut)].tolist()][df_unificacion.columns[7]].tolist()
+    lista_fecha.append(None)
+    data['x'].extend(lista_fecha)
+    lista_rut=[]
+    i=0
+    while i<len(lista_fecha)-1:
+        lista_rut.append(str(rut))
+        i=i+1
+    lista_rut.append(None)
+    data["y"].extend(lista_rut)
+    data["colors"].extend(lista_colores)
+    macros_1=[]
+    macros_1=df_unificacion.iloc[df_unificacion.index[(df_unificacion['RUT']==rut)].tolist()][df_unificacion.columns[14]].tolist()
+    macros_2=[]
+    macros_2=df_unificacion.iloc[df_unificacion.index[(df_unificacion['RUT']==rut)].tolist()][df_unificacion.columns[9]].tolist()
+    lista_evento=[]
+    j=0
+    while j<len(macros_1):
+        lista_evento.append(str(macros_1[j])+'. Patología: '+str(macros_2[j]))
+        j=j+1
+    lista_evento.append(None)
+    data["eventos"].extend(lista_evento)
+
+
+fig = go.Figure(
+    data=[
+        go.Scatter(
+            x=data["x"],
+            y=data["y"],
+            mode="markers+lines",
+            marker=dict(
+                symbol="arrow",
+                color="royalblue",
+                size=16,
+                angleref="previous",
+                standoff=8,
+            ),
+        ),
+        go.Scatter(
+            x=data["x"],
+            y=data["y"],
+            text=data['eventos'],
+            mode="markers",
+            marker=dict(
+                color=data["colors"],
+                size=16,
+            ),
+            hovertemplate="""Paciente: %{y} <br> Fecha: %{x} <br> Macro-evento: %{text} <br><extra></extra>""",
+        ),
+    ]
+)
+fig.update_layout(
+    title=f'Patología: {patologia}. Tipo de convenio: {t_conv}. Estado: {estado}',
+    width=1000,
+    height=1000,
+    showlegend=False,
+    )
+plot(fig)
