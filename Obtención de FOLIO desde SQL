@@ -1,0 +1,45 @@
+print('Comienzo de folio')
+#FOLIO.
+import pyodbc
+import cx_Oracle
+import pandas as pd
+import datetime as dt
+conn_str=("Driver={ODBC Driver 17 for SQL Server};"
+            "Server=SRVSQLGESTION.FALP.ORG\SQLCLINICA;"
+            "Database=Gestion_Clin;"
+            "Trusted_Connection=yes;")
+conn2=pyodbc.connect(conn_str)
+df_folio=pd.read_sql("""SELECT [FECHA]
+      ,[FOLIO]
+      ,[FECHA_INGRESO]
+      ,[FECHA_ALTA]
+      ,[RUT]
+      ,[AP_PATERNO]
+      ,[AP_MATERNO]
+      ,[NOMBRES]
+      ,[SEXO]
+      ,[FECHA_NAC]
+      ,[PRESTACION]
+      ,[DESCRIPCION]
+      ,[IVA]
+      ,[NETO]
+      ,[PREVISION]
+      ,[CONVENIO]
+      ,[C_ONCOLOGICO]
+      ,[CONCEPTO]
+      ,[TIPOINGRESO]
+      ,[MOTIVOINGRESO]
+      ,[PATOLOGIA]
+      ,[COMUNA]
+      ,[CIUDAD]
+      ,[REGION]
+  FROM [Gestion_Clin].[BI].[Tabla3_Completa]
+  where FECHA BETWEEN '01-01-2018' and '31-10-2022'""",conn2)
+  
+
+
+
+ruta='C:/Users/edgar/Downloads/RESPALDO/df_folio_respaldo.csv'
+df_folio.to_csv(path_or_buf=ruta)
+
+
