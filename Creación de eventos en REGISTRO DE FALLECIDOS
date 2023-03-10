@@ -1,0 +1,144 @@
+print('Comienzo de registro de fallecidos')
+#REGISTRO DE FALLECIDOS.
+import pyodbc
+import cx_Oracle
+import pandas as pd
+
+
+#Importar base de datos.
+ruta_importacion='C:/Users/edgar/Downloads/RESPALDO/df_fallecimiento_respaldo.csv'
+df_fallecimiento=pd.read_csv(ruta_importacion)
+
+
+
+#Pasar la columna RUT a int.
+rut=[]
+i=0
+while i<len(df_fallecimiento):
+    rut.append(int(df_fallecimiento['RUTID'][i]))
+    i=i+1
+df_fallecimiento['RUTID']=rut
+#Pasar la columna PATERNO a string.
+paterno=[]
+i=0
+while i<len(df_fallecimiento):
+    paterno.append(str(df_fallecimiento['PATERNO'][i]))
+    i=i+1
+df_fallecimiento['PATERNO']=paterno
+#Pasar la columna MATERNO a string.
+materno=[]
+i=0
+while i<len(df_fallecimiento):
+    materno.append(str(df_fallecimiento['MATERNO'][i]))
+    i=i+1
+df_fallecimiento['MATERNO']=materno
+#Pasar la columna NOMBRES a string.
+nombres=[]
+i=0
+while i<len(df_fallecimiento):
+    nombres.append(str(df_fallecimiento['NOMBRES'][i]))
+    i=i+1
+df_fallecimiento['NOMBRES']=nombres
+#Pasar la columna FECHA_DEFUNCION a string.
+fecha=[]
+i=0
+while i<len(df_fallecimiento):
+    fecha.append(str(df_fallecimiento['FECHA_DEFUNCION'][i]))
+    i=i+1
+df_fallecimiento['FECHA_DEFUNCION']=fecha
+
+#Aquí debería unir los nombres.
+df_fallecimiento['NOMBRE_COMPLETO']=df_fallecimiento['PATERNO']+' '+df_fallecimiento['MATERNO']+' '+df_fallecimiento['NOMBRES']
+
+#Llamar columnas que nos importan.
+df_fallecimiento=df_fallecimiento[['RUTID','NOMBRE_COMPLETO',
+                                   'FECHA_DEFUNCION']]
+
+#Obtención de columna de MACRO_EVENTO.
+lista_macro_evento=[]
+i=0
+while i<len(df_fallecimiento):
+    lista_macro_evento.append('Defunción')
+    i=i+1
+df_fallecimiento['MACRO_EVENTO']=lista_macro_evento
+
+
+
+
+
+
+#Agregar columnas SEXO, FOLIO, HORA, DIAGNOSTICO, NETO e IVA.
+lista_fecha_nacimiento=[]
+lista_edad=[]
+lista_sexo=[]
+lista_folio=[]
+lista_hora=[]
+lista_diagnostico=[]
+lista_evento=[]
+lista_detalle_prestaciones=[]
+lista_neto=[]
+lista_iva=[]
+lista_oncologico=[]
+lista_prevision=[]
+lista_convenio=[]
+lista_region=[]
+lista_ciudad=[]
+lista_comuna=[]
+i=0
+while i<len(df_fallecimiento):
+    lista_fecha_nacimiento.append('')
+    lista_edad.append(0)
+    lista_sexo.append('')
+    lista_folio.append(0)
+    lista_hora.append('00:00:00')
+    lista_diagnostico.append('')
+    lista_evento.append('')
+    lista_detalle_prestaciones.append('')
+    lista_neto.append(0)
+    lista_iva.append(0)
+    lista_oncologico.append('')
+    lista_prevision.append('')
+    lista_convenio.append('')
+    lista_region.append('')
+    lista_ciudad.append('')
+    lista_comuna.append('')
+    i=i+1
+df_fallecimiento['FECHA_NACIMIENTO']=lista_fecha_nacimiento
+df_fallecimiento['EDAD']=lista_edad
+df_fallecimiento['SEXO']=lista_sexo
+df_fallecimiento['FOLIO']=lista_folio
+df_fallecimiento['HORA']=lista_hora
+df_fallecimiento['DIAGNOSTICO']=lista_diagnostico
+df_fallecimiento['EVENTO']=lista_evento
+df_fallecimiento['DETALLE_PRESTACIONES']=lista_detalle_prestaciones
+df_fallecimiento['NETO']=lista_neto
+df_fallecimiento['IVA']=lista_iva
+df_fallecimiento['C_ONCOLOGICO']=lista_oncologico
+df_fallecimiento['PREVISION']=lista_prevision
+df_fallecimiento['CONVENIO']=lista_convenio
+df_fallecimiento['REGION']=lista_region
+df_fallecimiento['CIUDAD']=lista_ciudad
+df_fallecimiento['COMUNA']=lista_comuna
+
+                               
+#Reordenamiento de columnas.
+df_fallecimiento=df_fallecimiento[['RUTID','NOMBRE_COMPLETO','FECHA_NACIMIENTO',
+                     'EDAD','SEXO','FOLIO','FECHA_DEFUNCION','HORA',
+                     'DIAGNOSTICO','MACRO_EVENTO','EVENTO',
+                     'DETALLE_PRESTACIONES','NETO','IVA',
+                     'C_ONCOLOGICO','PREVISION','CONVENIO','REGION',
+                     'CIUDAD','COMUNA']]
+
+df_fallecimiento.columns=['RUT','NOMBRE','FECHA_NACIMIENTO','EDAD','SEXO','FOLIO',
+                 'FECHA_EVENTO','HORA',
+                 'DIAGNOSTICO','MACRO_EVENTO','EVENTO','DETALLE_PRESTACIONES',
+                 'NETO','IVA','C_ONCOLOGICO','PREVISION','CONVENIO','REGION',
+                 'CIUDAD','COMUNA']
+
+
+df_fallecimiento=df_fallecimiento.sort_values(['RUT','FECHA_EVENTO'],
+                                              ascending=True,ignore_index=True)
+
+
+ruta_exportacion='C:/Users/edgar/Downloads/EVENTOS/df_fallecimiento_eventos.csv'
+df_fallecimiento.to_csv(path_or_buf=ruta_exportacion)
