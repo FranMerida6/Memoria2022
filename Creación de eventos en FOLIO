@@ -1,0 +1,617 @@
+#FOLIO.
+print('Comienzo de folio')
+import pandas as pd
+from datetime import datetime
+from datetime import timedelta
+
+
+print('Hora de inicio: '+str(datetime.now())[11:19]+' hrs.')
+
+
+df_folio=pd.read_csv(filepath_or_buffer='C:/Users/edgar/Downloads/RESPALDO/df_folio_respaldo.csv')
+print('Ya se importó la data')
+
+print('Inicio de limpieza de la data')
+
+lista_inicial=['FECHA','FECHA_ALTA','FECHA_INGRESO','NOMBRES','AP_MATERNO',
+               'AP_PATERNO','FOLIO','SEXO','DESCRIPCION','PATOLOGIA',
+               'MOTIVOINGRESO','TIPOINGRESO','CONCEPTO','PREVISION','CONVENIO',
+               'C_ONCOLOGICO','REGION','CIUDAD','COMUNA']
+j=0
+while j<len(lista_inicial):
+    #Cambiar las columnas de texto a string.
+    lista=[]
+    i=0
+    while i<len(df_folio):
+        lista.append(str(df_folio[lista_inicial[j]][i]))
+        i=i+1
+    df_folio[lista_inicial[j]]=lista
+    print(lista_inicial[j])
+    #Eliminar los espacios innecesarios.
+    nueva_lista=[]
+    i=0
+    while i<len(df_folio):
+        cadena=df_folio[lista_inicial[j]][i]
+        cadena_limpia=cadena.strip()
+        nueva_lista.append(cadena_limpia)
+        i=i+1
+    df_folio[lista_inicial[j]]=nueva_lista
+    j=j+1
+
+
+#Cambiar la columna RUT a int.
+rut=[]
+i=0
+while i<len(df_folio):
+    rut.append(int(df_folio['RUT'][i]))
+    i=i+1
+df_folio['RUT']=rut
+#Eliminación de RUT 0.
+df_folio=df_folio.drop(df_folio[df_folio['RUT']==0].index)
+#Reordenamiento de los identificadores únicos que Python asigna a cada registro.
+df_folio.index=range(df_folio.shape[0])
+
+
+#Cambiar formato del sexo del paciente.
+sexo=[]
+i=0
+while i<len(df_folio):
+    if df_folio['SEXO'][i]=='FE' or df_folio['SEXO'][i]=='Fe':
+        sexo.append('Femenino')
+        i=i+1
+    else:
+        if df_folio['SEXO'][i]=='MA' or df_folio['SEXO'][i]=='Ma':
+            sexo.append('Masculino')
+            i=i+1
+        else:
+            sexo.append('')
+            i=i+1
+df_folio['SEXO']=sexo
+
+
+
+#Acortar la fecha ingreso.
+lista_fechas=[]
+i=0
+while i<len(df_folio['FECHA_INGRESO']):
+    lista_fechas.append(df_folio['FECHA_INGRESO'][i][0:10])
+    i=i+1
+df_folio['FECHA_INGRESO']=lista_fechas
+
+
+#Acortar la fecha alta.
+lista_fechas_alta=[]
+i=0
+while i<len(df_folio['FECHA_ALTA']):
+    lista_fechas_alta.append(df_folio['FECHA_ALTA'][i][0:10])
+    i=i+1
+df_folio['FECHA_ALTA']=lista_fechas_alta
+
+
+#Concatenar apellidos con nombre.
+df_folio['NOMBRE_COMPLETO']=df_folio['AP_PATERNO']+' '+df_folio['AP_MATERNO']+' '+df_folio['NOMBRES']
+
+
+
+print('Término de limpieza de la data')
+
+
+#Cambio de Honorarios Médicos por Consulta Médica.
+lista_prestaciones_nueva=[]
+i=0
+while i<len(df_folio):
+    if df_folio['CONCEPTO'][i]=='Honorarios Medicos':
+        lista_prestaciones_nueva.append('Consulta Médica')
+        i=i+1
+    else:
+        lista_prestaciones_nueva.append(df_folio['CONCEPTO'][i])
+        i=i+1
+df_folio['CONCEPTO']=lista_prestaciones_nueva
+
+print('Ya se cambió Honorarios Médicos por Consulta Médica')
+
+
+
+
+#Rescate de columnas que nos importan.
+df_folio=df_folio[['RUT','NOMBRE_COMPLETO','FECHA_NAC','SEXO',
+                   'FOLIO','FECHA','FECHA_INGRESO','FECHA_ALTA',
+                   'PATOLOGIA','TIPOINGRESO','MOTIVOINGRESO',
+                   'CONCEPTO','PRESTACION','DESCRIPCION','NETO','IVA',
+                   'C_ONCOLOGICO','PREVISION','CONVENIO','REGION',
+                   'CIUDAD','COMUNA']]
+
+df_folio=df_folio.sort_values(['RUT','FOLIO','CONCEPTO','DESCRIPCION'],ascending=True,ignore_index=True)
+
+
+print('Comiendo de rescate de patología por folio')
+
+
+#Traer patología según folio.
+lista=[]
+lista_mayor=[]
+i=0
+while i<len(df_folio):
+    if i==len(df_folio)-1:
+        lista_mayor.append(df_folio['PATOLOGIA'][i])
+        break
+    else:
+        if df_folio['FOLIO'][i]==df_folio['FOLIO'][i+1]:
+            lista.append(df_folio['PATOLOGIA'][i])
+            j=i+1
+            while j<len(df_folio):
+                if j==len(df_folio)-1:
+                    lista.append(df_folio['PATOLOGIA'][j])
+                    duplicados=[]
+                    t=0
+                    while t<len(lista):
+                        if lista[t] not in duplicados:
+                            duplicados.append(lista[t])
+                            t=t+1
+                        else:
+                            t=t+1
+                    if 'nan' in duplicados:
+                        duplicados.remove('nan')
+                    if duplicados==[]:
+                        duplicados.append('nan')
+                    cobertura=''
+                    w=0
+                    while w<len(duplicados):
+                        if w==0:
+                            cobertura=duplicados[w]
+                            w=w+1
+                        else:
+                            cobertura=cobertura+', '+duplicados[w]
+                            w=w+1
+                    lista_mayor.append(cobertura)
+                    while i<j:
+                        lista_mayor.append(cobertura)
+                        i=i+1
+                    i=j+1
+                    lista=[]
+                    break
+                else:
+                    if df_folio['FOLIO'][j]==df_folio['FOLIO'][j+1]:
+                        lista.append(df_folio['PATOLOGIA'][j])
+                        j=j+1
+                    else:
+                        lista.append(df_folio['PATOLOGIA'][j])
+                        duplicados=[]
+                        t=0
+                        while t<len(lista):
+                            if lista[t] not in duplicados:
+                                duplicados.append(lista[t])
+                                t=t+1
+                            else:
+                                t=t+1
+                        if 'nan' in duplicados:
+                            duplicados.remove('nan')
+                        if duplicados==[]:
+                            duplicados.append('nan')
+                        cobertura=''
+                        w=0
+                        while w<len(duplicados):
+                            if w==0:
+                                cobertura=duplicados[w]
+                                w=w+1
+                            else:
+                                cobertura=cobertura+', '+duplicados[w]
+                                w=w+1
+                        lista_mayor.append(cobertura)
+                        while i<j:
+                            lista_mayor.append(cobertura)
+                            i=i+1
+                        i=j+1
+                        lista=[]
+                        break
+        else:
+            lista_mayor.append(df_folio['PATOLOGIA'][i])
+            i=i+1
+df_folio['PATOLOGIA']=lista_mayor
+
+print('Término de rescate de patología por folio')
+
+
+#Obtención del macro evento.
+lista_evento=[]
+i=0
+while i<len(df_folio):
+    if i==len(df_folio)-1:
+        lista_evento.append(df_folio['TIPOINGRESO'][i]+' _ '+df_folio['MOTIVOINGRESO'][i])
+        break
+    else:
+        if df_folio['RUT'][i]==df_folio['RUT'][i+1] and df_folio['FOLIO'][i]==df_folio['FOLIO'][i+1]:
+            j=i+1
+            while j<len(df_folio):
+                if j==len(df_folio)-1:
+                    lista_evento.append(df_folio['TIPOINGRESO'][j]+' _ '+df_folio['MOTIVOINGRESO'][j])
+                    while i<j:
+                        lista_evento.append('')
+                        i=i+1
+                    i=j+1
+                    break
+                else:
+                    if df_folio['RUT'][j]==df_folio['RUT'][j+1] and df_folio['FOLIO'][j]==df_folio['FOLIO'][j+1]:
+                        j=j+1
+                    else:
+                        lista_evento.append(df_folio['TIPOINGRESO'][i]+' _ '+df_folio['MOTIVOINGRESO'][i])
+                        while i<j:
+                            lista_evento.append('')
+                            i=i+1
+                        i=j+1
+                        break
+        else:
+            lista_evento.append(df_folio['TIPOINGRESO'][i]+' _ '+df_folio['MOTIVOINGRESO'][i])
+            i=i+1
+df_folio['MACRO_EVENTO']=lista_evento
+
+print('Ya se crearon los macro eventos')
+
+#Obtención del evento.
+lista_evento=[]
+lista_concepto_1=[]
+lista_concepto_duplicados_1=[]
+i=0
+while i<len(df_folio):
+    if i==len(df_folio)-1:
+        lista_evento.append(df_folio['CONCEPTO'][i])
+        break
+    else:
+        if df_folio['RUT'][i]==df_folio['RUT'][i+1] and df_folio['FOLIO'][i]==df_folio['FOLIO'][i+1]:
+            lista_concepto_1.append(df_folio['CONCEPTO'][i])
+            j=i+1
+            while j<len(df_folio):
+                if j==len(df_folio)-1:
+                    lista_evento.append(df_folio['CONCEPTO'][j])
+                    while i<j:
+                        lista_evento.append('')
+                        i=i+1
+                    i=j+1
+                    break
+                else:
+                    if df_folio['RUT'][j]==df_folio['RUT'][j+1] and df_folio['FOLIO'][j]==df_folio['FOLIO'][j+1]:
+                        lista_concepto_1.append(df_folio['CONCEPTO'][j])
+                        j=j+1
+                    else:
+                        lista_concepto_1.append(df_folio['CONCEPTO'][j])
+                        m=0
+                        while m<len(lista_concepto_1):
+                            if lista_concepto_1[m] not in lista_concepto_duplicados_1:
+                                lista_concepto_duplicados_1.append(lista_concepto_1[m])
+                                m=m+1
+                            else:
+                                m=m+1
+                        w=0
+                        while w<len(lista_concepto_duplicados_1):
+                            if w==0:
+                                evento=lista_concepto_duplicados_1[w]
+                                w=w+1
+                            else:
+                                if w==len(lista_concepto_duplicados_1)-1:
+                                    evento=evento+', '+lista_concepto_duplicados_1[w]+'.'
+                                    w=w+1
+                                else:
+                                    evento=evento+', '+lista_concepto_duplicados_1[w]
+                                    w=w+1
+                        lista_evento.append(evento)
+                        while i<j:
+                            lista_evento.append('')
+                            i=i+1
+                        i=j+1
+                        lista_concepto_1=[]
+                        lista_concepto_duplicados_1=[]
+                        break
+        else:
+            lista_evento.append(df_folio['CONCEPTO'][i])
+            i=i+1
+df_folio['EVENTO']=lista_evento
+
+print('ya se crearon los eventos')
+
+#Obtención de detalle de prestaciones.
+lista_evento_descripcion=[]
+lista_concepto=[]
+lista_concepto_duplicados=[]
+i=0
+while i<len(df_folio):
+    if i==len(df_folio)-1:
+        lista_evento_descripcion.append(df_folio['CONCEPTO'][i]+': '+df_folio['DESCRIPCION'][i])
+        break
+    else:
+        if df_folio['RUT'][i]==df_folio['RUT'][i+1] and df_folio['FOLIO'][i]==df_folio['FOLIO'][i+1]:
+            lista_concepto.append(df_folio['CONCEPTO'][i])
+            j=i+1
+            while j<len(df_folio):
+                if j==len(df_folio)-1:
+                    lista_evento_descripcion.append(df_folio['CONCEPTO'][j]+': '+df_folio['DESCRIPCION'][j])
+                    while i<j:
+                        lista_evento_descripcion.append('')
+                        i=i+1
+                    i=j+1
+                    break
+                else:
+                    if df_folio['RUT'][j]==df_folio['RUT'][j+1] and df_folio['FOLIO'][j]==df_folio['FOLIO'][j+1]:
+                        lista_concepto.append(df_folio['CONCEPTO'][j])
+                        j=j+1
+                    else:
+                        lista_concepto.append(df_folio['CONCEPTO'][j])
+                        m=0
+                        while m<len(lista_concepto):
+                            if lista_concepto[m] not in lista_concepto_duplicados:
+                                lista_concepto_duplicados.append(lista_concepto[m])
+                                m=m+1
+                            else:
+                                m=m+1
+                        k=0
+                        while k<len(lista_concepto_duplicados):
+                            if k==0:
+                                t=0
+                                while t<len([indice for indice, dato in enumerate(lista_concepto) if dato==lista_concepto_duplicados[k]]):
+                                    if t==0:
+                                        posicion_descripcion=[indice for indice, dato in enumerate(lista_concepto) if dato==lista_concepto_duplicados[k]][t]
+                                        if lista_concepto_duplicados[k]=='Consulta Médica' or lista_concepto_duplicados[k]=='Farmaco Oncologico' or lista_concepto_duplicados[k]=='Radioterapia':
+                                            evento=lista_concepto_duplicados[k]+': '+df_folio['DESCRIPCION'][i+posicion_descripcion]  
+                                            t=t+1
+                                        else:
+                                            evento=lista_concepto_duplicados[k]
+                                            t=t+1
+                                    else:
+                                        posicion_descripcion=[indice for indice, dato in enumerate(lista_concepto) if dato==lista_concepto_duplicados[k]][t]
+                                        if lista_concepto_duplicados[k]=='Consulta Médica' or lista_concepto_duplicados[k]=='Farmaco Oncologico' or lista_concepto_duplicados[k]=='Radioterapia':
+                                            if df_folio['DESCRIPCION'][i+posicion_descripcion]==df_folio['DESCRIPCION'][i+posicion_descripcion-1]:
+                                                evento=evento
+                                                t=t+1
+                                            else:
+                                                evento=evento+', '+df_folio['DESCRIPCION'][i+posicion_descripcion]
+                                                t=t+1
+                                        else:
+                                            evento=evento
+                                            t=t+1
+                                k=k+1
+                            else:
+                                t=0
+                                while t<len([indice for indice, dato in enumerate(lista_concepto) if dato==lista_concepto_duplicados[k]]):
+                                    if t==0:
+                                        posicion_descripcion=[indice for indice, dato in enumerate(lista_concepto) if dato==lista_concepto_duplicados[k]][t]
+                                        if lista_concepto_duplicados[k]=='Consulta Médica' or lista_concepto_duplicados[k]=='Farmaco Oncologico' or lista_concepto_duplicados[k]=='Radioterapia':
+                                            evento=evento+'. '+lista_concepto_duplicados[k]+': '+df_folio['DESCRIPCION'][i+posicion_descripcion]  
+                                            t=t+1
+                                        else:
+                                            evento=evento+'. '+lista_concepto_duplicados[k]
+                                            t=t+1
+                                    else:
+                                        posicion_descripcion=[indice for indice, dato in enumerate(lista_concepto) if dato==lista_concepto_duplicados[k]][t]
+                                        if lista_concepto_duplicados[k]=='Consulta Médica' or lista_concepto_duplicados[k]=='Farmaco Oncologico' or lista_concepto_duplicados[k]=='Radioterapia':
+                                            if df_folio['DESCRIPCION'][i+posicion_descripcion]==df_folio['DESCRIPCION'][i+posicion_descripcion-1]:
+                                                evento=evento
+                                                t=t+1
+                                            else:
+                                                evento=evento+', '+df_folio['DESCRIPCION'][i+posicion_descripcion]
+                                                t=t+1
+                                        else:
+                                            evento=evento
+                                            t=t+1
+                                k=k+1   
+                        lista_evento_descripcion.append(evento)
+                        while i<j:
+                            lista_evento_descripcion.append('')
+                            i=i+1
+                        i=j+1
+                        lista_concepto=[]
+                        lista_concepto_duplicados=[]
+                        break
+        else:
+            lista_evento_descripcion.append(df_folio['CONCEPTO'][i]+': '+df_folio['DESCRIPCION'][i])
+            i=i+1
+df_folio['DETALLE_PRESTACIONES']=lista_evento_descripcion
+
+
+print('Ya se crearon los detalles de las prestaciones')
+
+#Cálculo del neto.
+lista_neto=[]
+lista_neto_final=[]
+i=0
+while i<len(df_folio):
+  if i==len(df_folio)-1:
+    #Este es un caso especial (última fila).
+    lista_neto.append(df_folio['NETO'][i])
+    k=0
+    while k<len(lista_neto):
+      if k==0:
+        neto=lista_neto[k]
+        k=k+1
+      else:
+        neto=neto+lista_neto[k]
+        k=k+1
+    lista_neto_final.append(neto)
+    lista_neto=[]
+    break
+  else:
+    if df_folio['RUT'][i]==df_folio['RUT'][i+1] and df_folio['FOLIO'][i]==df_folio['FOLIO'][i+1]:
+      lista_neto.append(df_folio['NETO'][i])
+      j=i+1
+      while j<len(df_folio):
+        if j==len(df_folio)-1:
+          #Este es un caso especial (última fila).
+          lista_neto.append(df_folio['NETO'][j])
+          k=0
+          while k<len(lista_neto):
+            if k==0:
+              neto=lista_neto[k]
+              k=k+1
+            else:
+              neto=neto+lista_neto[k]
+              k=k+1
+          lista_neto_final.append(neto)
+          while i<j:
+            lista_neto_final.append('')
+            i=i+1
+          i=j+1
+          lista_neto=[]
+          break
+        else:
+          if df_folio['RUT'][j]==df_folio['RUT'][j+1] and df_folio['FOLIO'][j]==df_folio['FOLIO'][j+1]:
+            lista_neto.append(df_folio['NETO'][j])
+            j=j+1
+          else:
+            lista_neto.append(df_folio['NETO'][j])
+            k=0
+            while k<len(lista_neto):
+              if k==0:
+                neto=lista_neto[k]
+                k=k+1
+              else:
+                neto=neto+lista_neto[k]
+                k=k+1
+            lista_neto_final.append(neto)
+            while i<j:
+              lista_neto_final.append('')
+              i=i+1
+            i=j+1
+            lista_neto=[]
+            break
+    else:
+      lista_neto_final.append(df_folio['NETO'][i])
+      i=i+1
+df_folio['NETO_FINAL']=lista_neto_final
+
+print('Ya se calculó el neto')
+
+#Cálculo de iva.
+lista_iva=[]
+lista_iva_final=[]
+i=0
+while i<len(df_folio):
+  if i==len(df_folio)-1:
+    #Este es un caso especial (última fila).
+    lista_iva.append(df_folio['IVA'][i])
+    k=0
+    while k<len(lista_iva):
+      if k==0:
+        iva=lista_iva[k]
+        k=k+1
+      else:
+        iva=iva+lista_iva[k]
+        k=k+1
+    lista_iva_final.append(iva)
+    lista_iva=[]
+    break
+  else:
+    if df_folio['RUT'][i]==df_folio['RUT'][i+1] and df_folio['FOLIO'][i]==df_folio['FOLIO'][i+1]:
+      lista_iva.append(df_folio['IVA'][i])
+      j=i+1
+      while j<len(df_folio):
+        if j==len(df_folio)-1:
+          #Este es un caso especial (última fila).
+          lista_iva.append(df_folio['IVA'][j])
+          k=0
+          while k<len(lista_iva):
+            if k==0:
+              iva=lista_iva[k]
+              k=k+1
+            else:
+              iva=iva+lista_iva[k]
+              k=k+1
+          lista_iva_final.append(iva)
+          while i<j:
+            lista_iva_final.append('')
+            i=i+1
+          i=j+1
+          lista_iva=[]
+          break
+        else:
+          if df_folio['RUT'][j]==df_folio['RUT'][j+1] and df_folio['FOLIO'][j]==df_folio['FOLIO'][j+1]:
+            lista_iva.append(df_folio['IVA'][j])
+            j=j+1
+          else:
+            lista_iva.append(df_folio['IVA'][j])
+            k=0
+            while k<len(lista_iva):
+              if k==0:
+                iva=lista_iva[k]
+                k=k+1
+              else:
+                iva=iva+lista_iva[k]
+                k=k+1
+            lista_iva_final.append(iva)
+            while i<j:
+              lista_iva_final.append('')
+              i=i+1
+            i=j+1
+            lista_iva=[]
+            break
+    else:
+      lista_iva_final.append(df_folio['IVA'][i])
+      i=i+1
+df_folio['IVA_FINAL']=lista_iva_final
+
+print('Ya se calculó el IVA')
+
+#Reordenamiento de columnas.
+df_folio=df_folio[['RUT','NOMBRE_COMPLETO','FECHA_NAC','SEXO',
+                   'FOLIO','FECHA_INGRESO',
+                   'PATOLOGIA',
+                   'MACRO_EVENTO','EVENTO','DETALLE_PRESTACIONES',
+                   'NETO','IVA','NETO_FINAL','IVA_FINAL',
+                   'C_ONCOLOGICO','PREVISION','CONVENIO','REGION',
+                   'CIUDAD','COMUNA']]
+
+
+#Se eliminan las filas que en la columna EVENTO están vacías.
+df_folio=df_folio.drop(df_folio[df_folio['EVENTO']==''].index)
+#Reseteo de índices.
+df_folio.index=range(df_folio.shape[0])
+#Renombramiento de columnas.
+df_folio=df_folio[['RUT','NOMBRE_COMPLETO','FECHA_NAC',
+                 'SEXO','FOLIO','FECHA_INGRESO','PATOLOGIA',
+                 'MACRO_EVENTO','EVENTO','DETALLE_PRESTACIONES',
+                 'NETO_FINAL','IVA_FINAL','C_ONCOLOGICO',
+                 'PREVISION','CONVENIO','REGION','CIUDAD','COMUNA']]
+
+df_folio.columns=['RUT','NOMBRE','FECHA_NACIMIENTO','SEXO','FOLIO',
+                 'FECHA_EVENTO','PATOLOGIA','MACRO_EVENTO','EVENTO',
+                 'DETALLE_PRESTACIONES','NETO','IVA','C_ONCOLOGICO',
+                 'PREVISION','CONVENIO','REGION','CIUDAD','COMUNA']
+
+#Falta agregar las columnas EDAD, HORA y DIAGNOSTICO.
+edad=[]
+hora=[]
+diagnostico=[]
+i=0
+while i<len(df_folio):
+    edad.append(0)
+    hora.append('00:00:00')
+    diagnostico.append('')
+    i=i+1
+df_folio['EDAD']=edad
+df_folio['HORA']=hora
+df_folio['DIAGNOSTICO']=diagnostico
+
+#Recuperación de columnas que nos importan.
+df_folio=df_folio[['RUT','NOMBRE','FECHA_NACIMIENTO','EDAD','SEXO',
+                  'FOLIO','FECHA_EVENTO','HORA','PATOLOGIA','DIAGNOSTICO',
+                 'MACRO_EVENTO','EVENTO','DETALLE_PRESTACIONES',
+                 'NETO','IVA','C_ONCOLOGICO','PREVISION','CONVENIO',
+                 'REGION','CIUDAD','COMUNA']]
+
+
+#Ahora hay que ordenar la data.
+df_folio=df_folio.sort_values(['RUT','FECHA_EVENTO'],ascending=True,ignore_index=True)
+
+
+#Cambiar formato de detalle de prestaciones.
+nuevo_detalle=[]
+i=0
+while i<len(df_folio):
+    nuevo_detalle.append('Detalle de prestaciones:\n\n'+df_folio['DETALLE_PRESTACIONES'][i]+'.\n\nCosto del evento: '+str(df_folio['NETO'][i])[:-2])
+    i=i+1
+df_folio['DETALLE_PRESTACIONES']=nuevo_detalle
+
+print('Ahora crea la base eventiva final')
+
+#Creación de CSV final.
+ruta_exportacion='C:/Users/edgar/Downloads/EVENTOS_2/df_folio_eventos_2.csv'
+df_folio.to_csv(path_or_buf=ruta_exportacion)
+
+print('Hora término: '+str(datetime.now())[11:19]+' hrs.')
