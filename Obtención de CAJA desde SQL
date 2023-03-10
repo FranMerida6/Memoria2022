@@ -1,0 +1,54 @@
+print('Comienzo de registro de caja')
+#CAJA.
+import pyodbc
+import cx_Oracle
+import pandas as pd
+conn_str=("Driver={ODBC Driver 17 for SQL Server};"
+            "Server=SRVSQLGESTION.FALP.ORG\SQLCLINICA;"
+            "Database=Gestion_Clin;"
+            "Trusted_Connection=yes;")
+conn=pyodbc.connect(conn_str)
+df_caja=pd.read_sql("""SELECT [CAJERO]
+      ,[FECHA_ATENCION]
+      ,[NUMERO_FICHA]
+      ,[SEXO]
+      ,[RUT_PACIENTE]
+      ,[EDAD]
+      ,[PACIENTE]
+      ,[CODIGO_PRESTACION]
+      ,[DECRIPCION]
+      ,[CANTIDAD]
+      ,[MONTO]
+      ,[EXENTO]
+      ,[AFECTO]
+      ,[IVA]
+      ,[PREVISION]
+      ,[CONVENIO]
+      ,[SERVICIO_SALUD]
+      ,[COMPROBANTE_TRANSACCION]
+      ,[BOLETA]
+      ,[TIPO_DE_PAGO]
+      ,[ESP_CODIGO]
+      ,[TIPO_PRESTACION]
+      ,[HORA]
+      ,[PRESTADOR]
+      ,[PREVISION2]
+      ,[RUTPREVISION]
+      ,[TPACK]
+      ,[CORRE]
+      ,[CORREL]
+      ,[ESTADO]
+      ,[NUMERO]
+      ,[CENTRO_MEDICO]
+      ,[FOLIO]
+      ,[COMUNA]
+      ,[CIUDAD]
+      ,[REGION]
+      ,[TIPODOCPAC]
+  FROM [Gestion_Clin].[BI].[Caja]
+  where FECHA_ATENCION BETWEEN '01-01-2018' and '31-10-2022'""",conn)
+
+
+
+ruta='C:/Users/edgar/Downloads/RESPALDO/df_caja_respaldo.csv'
+df_caja.to_csv(path_or_buf=ruta)
