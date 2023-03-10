@@ -1,0 +1,23 @@
+print('Comienzo de registro de fallecidos')
+#REGISTRO DE FALLECIDOS.
+import pyodbc
+import cx_Oracle
+import pandas as pd
+conn_str=("Driver={ODBC Driver 17 for SQL Server};"
+            "Server=SRVSQLGESTION.FALP.ORG\SQLCLINICA;"
+            "Database=Gestion_Clin;"
+            "Trusted_Connection=yes;")
+conn4=pyodbc.connect(conn_str)
+df_fallecimiento=pd.read_sql("""SELECT [RUTID]
+      ,[DV]
+      ,[PATERNO]
+      ,[MATERNO]
+      ,[NOMBRES]
+      ,[FECHA_DEF]
+      ,[FECHA_DEFUNCION]
+  FROM [Gestion_Clin].[BI].[REGISTRO_FALLECIDOS_EQUIFAX]
+  where FECHA_DEFUNCION BETWEEN '01-01-2018' and '31-10-2022'""",conn4)
+
+
+ruta='C:/Users/edgar/Downloads/RESPALDO/df_fallecimiento_respaldo.csv'
+df_fallecimiento.to_csv(path_or_buf=ruta)
