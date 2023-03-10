@@ -1,0 +1,1402 @@
+#Unificación hasta antes de eliminar los pacientes prueba se demora
+#21 minutos.
+
+#Importar librerías.
+import pandas as pd
+import math
+from datetime import datetime
+from datetime import timedelta
+
+
+import networkx as nx
+import matplotlib.pyplot as plt
+import numpy as np
+import plotly.graph_objects as go
+from plotly.offline import download_plotlyjs,init_notebook_mode,plot
+import pyodbc
+import cx_Oracle
+import plotly.express as px
+
+
+#Importar bases de datos.
+ruta_importacion='C:/Users/edgar/Downloads/EVENTOS/'
+df_caja=pd.read_csv('C:/Users/edgar/Downloads/EVENTOS_2/df_caja_eventos_2.csv')
+df_folio=pd.read_csv('C:/Users/edgar/Downloads/EVENTOS_2/df_folio_eventos_3.csv')
+df_comite=pd.read_csv('C:/Users/edgar/Downloads/EVENTOS_2/df_comite_eventos_2.csv')
+df_global=pd.read_csv(ruta_importacion+'df_global_eventos.csv')
+df_quimio=pd.read_csv('C:/Users/edgar/Downloads/EVENTOS_2/df_quimio_eventos_2.csv')
+df_fallecimiento=pd.read_csv(ruta_importacion+'df_fallecimiento_eventos.csv')
+
+
+patologia=[]
+origen=[]
+etapa=[]
+i=0
+while i<len(df_caja):
+    patologia.append('nan')
+    origen.append('CAJA')
+    etapa.append('nan')
+    i=i+1
+df_caja['PATOLOGIA']=patologia
+df_caja['ORIGEN']=origen
+df_caja['ETAPA']=etapa
+df_caja=df_caja[['Unnamed: 0','ORIGEN','RUT','NOMBRE','FECHA_NACIMIENTO','EDAD', 'SEXO',
+       'FOLIO', 'FECHA_EVENTO','HORA','PATOLOGIA', 'DIAGNOSTICO','ETAPA',
+       'MACRO_EVENTO', 'EVENTO', 'DETALLE_PRESTACIONES', 'NETO', 'IVA',
+       'C_ONCOLOGICO', 'PREVISION', 'CONVENIO', 'REGION', 'CIUDAD', 'COMUNA']]
+
+
+origen=[]
+etapa=[]
+i=0
+while i<len(df_folio):
+    origen.append('FOLIO')
+    etapa.append('nan')
+    i=i+1
+df_folio['ORIGEN']=origen
+df_folio['ETAPA']=etapa
+df_folio=df_folio[['Unnamed: 0','ORIGEN', 'RUT', 'NOMBRE', 'FECHA_NACIMIENTO', 'EDAD', 'SEXO',
+       'FOLIO', 'FECHA_EVENTO', 'HORA', 'PATOLOGIA', 'DIAGNOSTICO','ETAPA',
+       'MACRO_EVENTO', 'EVENTO', 'DETALLE_PRESTACIONES', 'NETO', 'IVA',
+       'C_ONCOLOGICO', 'PREVISION', 'CONVENIO', 'REGION', 'CIUDAD', 'COMUNA']]
+
+
+patologia=[]
+origen=[]
+etapa=[]
+i=0
+while i<len(df_comite):
+    patologia.append('nan')
+    origen.append('COMITÉ')
+    etapa.append('nan')
+    i=i+1
+df_comite['PATOLOGIA']=patologia
+df_comite['ORIGEN']=origen
+df_comite['ETAPA']=etapa
+df_comite=df_comite[['Unnamed: 0','ORIGEN', 'RUT', 'NOMBRE', 'FECHA_NACIMIENTO', 'EDAD', 'SEXO',
+       'FOLIO', 'FECHA_EVENTO', 'HORA', 'PATOLOGIA', 'DIAGNOSTICO','ETAPA',
+       'MACRO_EVENTO', 'EVENTO', 'DETALLE_PRESTACIONES', 'NETO', 'IVA',
+       'C_ONCOLOGICO', 'PREVISION', 'CONVENIO', 'REGION', 'CIUDAD', 'COMUNA']]
+
+patologia=[]
+origen=[]
+etapa=[]
+i=0
+while i<len(df_global):
+    patologia.append('nan')
+    origen.append('PLANES REMI')
+    etapa.append('nan')
+    i=i+1
+df_global['PATOLOGIA']=patologia
+df_global['ORIGEN']=origen
+df_global['ETAPA']=etapa
+df_global=df_global[['Unnamed: 0','ORIGEN', 'RUT', 'NOMBRE', 'FECHA_NACIMIENTO', 'EDAD', 'SEXO',
+       'FOLIO', 'FECHA_EVENTO', 'HORA', 'PATOLOGIA', 'DIAGNOSTICO','ETAPA',
+       'MACRO_EVENTO', 'EVENTO', 'DETALLE_PRESTACIONES', 'NETO', 'IVA',
+       'C_ONCOLOGICO', 'PREVISION', 'CONVENIO', 'REGION', 'CIUDAD', 'COMUNA']]
+
+patologia=[]
+origen=[]
+i=0
+while i<len(df_quimio):
+    patologia.append('nan')
+    origen.append('PLANES SICI')
+    i=i+1
+df_quimio['PATOLOGIA']=patologia
+df_quimio['ORIGEN']=origen
+df_quimio=df_quimio[['Unnamed: 0','ORIGEN', 'RUT', 'NOMBRE', 'FECHA_NACIMIENTO',
+                     'EDAD', 'SEXO',
+       'FOLIO', 'FECHA_EVENTO', 'HORA', 'PATOLOGIA', 'DIAGNOSTICO','ETAPA',
+       'MACRO_EVENTO', 'EVENTO', 'DETALLE_PRESTACIONES', 'NETO', 'IVA',
+       'C_ONCOLOGICO', 'PREVISION', 'CONVENIO', 'REGION', 'CIUDAD', 'COMUNA']]
+
+
+patologia=[]
+origen=[]
+etapa=[]
+i=0
+while i<len(df_fallecimiento):
+    patologia.append('nan')
+    origen.append('REGISTRO FALLECIDOS')
+    etapa.append('nan')
+    i=i+1
+df_fallecimiento['PATOLOGIA']=patologia
+df_fallecimiento['ORIGEN']=origen
+df_fallecimiento['ETAPA']=etapa
+df_fallecimiento=df_fallecimiento[['Unnamed: 0','ORIGEN', 'RUT', 'NOMBRE', 'FECHA_NACIMIENTO', 'EDAD', 'SEXO',
+       'FOLIO', 'FECHA_EVENTO', 'HORA', 'PATOLOGIA', 'DIAGNOSTICO','ETAPA',
+       'MACRO_EVENTO', 'EVENTO', 'DETALLE_PRESTACIONES', 'NETO', 'IVA',
+       'C_ONCOLOGICO', 'PREVISION', 'CONVENIO', 'REGION', 'CIUDAD', 'COMUNA']]
+
+
+
+
+#Unificar.
+df_unificacion=pd.concat([df_caja,df_folio,df_comite,df_global,df_quimio,
+                          df_fallecimiento],axis=0)
+#Reseteo de índices.
+df_unificacion.index=range(df_unificacion.shape[0])
+#Eliminar columna.
+df_unificacion=df_unificacion.drop(['Unnamed: 0'],axis=1)
+
+#Ordenar data.
+df_unificacion=df_unificacion.sort_values(['RUT','FECHA_EVENTO','HORA'],
+                                          axis=0,ascending=True,
+                                          ignore_index=True)
+
+
+#Desde aquí.
+print('Hora de inicio: '+str(datetime.now())[11:19]+' hrs.')
+
+lista_inicial=['PATOLOGIA','SEXO','C_ONCOLOGICO','PREVISION',
+               'CONVENIO','REGION','CIUDAD','COMUNA','FECHA_NACIMIENTO',
+               'DIAGNOSTICO','ETAPA','FOLIO']
+
+j=0
+while j<len(lista_inicial):
+    #Cambiar las columnas de texto a string.
+    lista=[]
+    i=0
+    while i<len(df_unificacion):
+        lista.append(str(df_unificacion[lista_inicial[j]][i]))
+        i=i+1
+    df_unificacion[lista_inicial[j]]=lista
+    print(lista_inicial[j])
+    j=j+1
+
+print('Ya se transformaron a string todas las columnas a ocupar')
+
+
+
+#Modificar columna FOLIO.
+lista_mayor=[]
+i=0
+while i<len(df_unificacion):
+    if df_unificacion['FOLIO'][i]=='0.0' or df_unificacion['FOLIO'][i]=='nan':
+        lista_mayor.append('SIN INFORMACIÓN')
+        i=i+1
+    else:
+        lista_mayor.append(df_unificacion['FOLIO'][i])
+        i=i+1
+df_unificacion['FOLIO']=lista_mayor
+
+
+
+
+#Modificar la columna ETAPA.
+lista=[]
+lista_mayor=[]
+i=0
+while i<len(df_unificacion):
+    if i==len(df_unificacion)-1:
+        lista.append(df_unificacion['ETAPA'][i])
+        cobertura=lista[0]
+        if cobertura=='nan':
+            cobertura='SIN INFORMACIÓN'
+        lista_mayor.append(cobertura)
+        lista=[]
+        break
+    else:
+        if df_unificacion['RUT'][i]==df_unificacion['RUT'][i+1]:
+            lista.append(df_unificacion['ETAPA'][i])
+            j=i+1
+            while j<len(df_unificacion):
+                if j==len(df_unificacion)-1:
+                    lista.append(df_unificacion['ETAPA'][j])
+                    lista.reverse()
+                    duplicados=[]
+                    t=0
+                    while t<len(lista):
+                        if lista[t] not in duplicados:
+                            duplicados.append(lista[t])
+                            t=t+1
+                        else:
+                            t=t+1
+                    if 'nan' in duplicados:
+                        duplicados.remove('nan')
+                    if duplicados==[]:
+                        duplicados.append('SIN INFORMACIÓN')
+                    cobertura=duplicados[0]
+                    lista_mayor.append(cobertura)
+                    while i<j:
+                        lista_mayor.append(cobertura)
+                        i=i+1
+                    i=j+1
+                    lista=[]
+                    break
+                else:
+                    if df_unificacion['RUT'][j]==df_unificacion['RUT'][j+1]:
+                        lista.append(df_unificacion['ETAPA'][j])
+                        j=j+1
+                    else:
+                        lista.append(df_unificacion['ETAPA'][j])
+                        lista.reverse()
+                        duplicados=[]
+                        t=0
+                        while t<len(lista):
+                            if lista[t] not in duplicados:
+                                duplicados.append(lista[t])
+                                t=t+1
+                            else:
+                                t=t+1
+                        if 'nan' in duplicados:
+                            duplicados.remove('nan')
+                        if duplicados==[]:
+                            duplicados.append('SIN INFORMACIÓN')
+                        cobertura=duplicados[0]
+                        lista_mayor.append(cobertura)
+                        while i<j:
+                            lista_mayor.append(cobertura)
+                            i=i+1
+                        i=j+1
+                        lista=[]
+                        break
+        else:
+            lista.append(df_unificacion['ETAPA'][i])
+            cobertura=lista[0]
+            if cobertura=='nan':
+                cobertura='SIN INFORMACIÓN'
+            lista_mayor.append(cobertura)
+            lista=[]
+            i=i+1
+
+df_unificacion['ETAPA_2']=lista_mayor
+df_unificacion=df_unificacion[['ORIGEN','RUT','NOMBRE','FECHA_NACIMIENTO',
+                               'EDAD','SEXO','FOLIO','FECHA_EVENTO','HORA',
+                               'PATOLOGIA','DIAGNOSTICO','ETAPA','ETAPA_2',
+                               'MACRO_EVENTO','EVENTO','DETALLE_PRESTACIONES',
+                               'NETO','IVA','C_ONCOLOGICO','PREVISION',
+                               'CONVENIO','REGION','CIUDAD','COMUNA']]
+
+#Aquí se modifican los datos que se encuentren en ETAPA.
+lista=[]
+lista_mayor=[]
+i=0
+while i<len(df_unificacion):
+    if df_unificacion['ETAPA'][i]=='nan':
+        lista_mayor.append('SIN INFORMACIÓN')
+        i=i+1
+    else:
+        lista_mayor.append(df_unificacion['ETAPA'][i])
+        i=i+1
+df_unificacion['ETAPA']=lista_mayor
+        
+
+print('Ya se modificó la columna ETAPA')
+
+
+#Modificar columna PATOLOGIA.
+lista=[]
+lista_mayor=[]
+i=0
+while i<len(df_unificacion):
+    if i==len(df_unificacion)-1:
+        lista.append(df_unificacion['PATOLOGIA'][i])
+        cobertura=lista[0]
+        if cobertura=='nan' or cobertura=='OTRO':
+            cobertura='SIN INFORMACIÓN'
+        lista_mayor.append(cobertura)
+        lista=[]
+        break
+    else:
+        if df_unificacion['RUT'][i]==df_unificacion['RUT'][i+1]:
+            lista.append(df_unificacion['PATOLOGIA'][i])
+            j=i+1
+            while j<len(df_unificacion):
+                if j==len(df_unificacion)-1:
+                    lista.append(df_unificacion['PATOLOGIA'][j])
+                    lista.reverse()
+                    duplicados=[]
+                    t=0
+                    while t<len(lista):
+                        if lista[t] not in duplicados:
+                            duplicados.append(lista[t])
+                            t=t+1
+                        else:
+                            t=t+1
+                    if 'nan' in duplicados:
+                        duplicados.remove('nan')
+                    if 'OTRO' in duplicados:
+                        duplicados.remove('OTRO')
+                    if duplicados==[]:
+                        duplicados.append('SIN INFORMACIÓN')
+                    cobertura=duplicados[0]
+                    lista_mayor.append(cobertura)
+                    while i<j:
+                        lista_mayor.append(cobertura)
+                        i=i+1
+                    i=j+1
+                    lista=[]
+                    break
+                else:
+                    if df_unificacion['RUT'][j]==df_unificacion['RUT'][j+1]:
+                        lista.append(df_unificacion['PATOLOGIA'][j])
+                        j=j+1
+                    else:
+                        lista.append(df_unificacion['PATOLOGIA'][j])
+                        lista.reverse()
+                        duplicados=[]
+                        t=0
+                        while t<len(lista):
+                            if lista[t] not in duplicados:
+                                duplicados.append(lista[t])
+                                t=t+1
+                            else:
+                                t=t+1
+                        if 'nan' in duplicados:
+                            duplicados.remove('nan')
+                        if 'OTRO' in duplicados:
+                            duplicados.remove('OTRO')
+                        if duplicados==[]:
+                            duplicados.append('SIN INFORMACIÓN')
+                        cobertura=duplicados[0]
+                        lista_mayor.append(cobertura)
+                        while i<j:
+                            lista_mayor.append(cobertura)
+                            i=i+1
+                        i=j+1
+                        lista=[]
+                        break
+        else:
+            lista.append(df_unificacion['PATOLOGIA'][i])
+            cobertura=lista[0]
+            if cobertura=='nan' or cobertura=='OTRO':
+                cobertura='SIN INFORMACIÓN'
+            lista_mayor.append(cobertura)
+            lista=[]
+            i=i+1
+
+df_unificacion['PATOLOGIA_2']=lista_mayor
+
+df_unificacion=df_unificacion[['ORIGEN','RUT','NOMBRE','FECHA_NACIMIENTO','EDAD',
+                               'SEXO','FOLIO','FECHA_EVENTO','HORA','PATOLOGIA',
+                               'PATOLOGIA_2','DIAGNOSTICO','ETAPA','ETAPA_2',
+                               'MACRO_EVENTO','EVENTO','DETALLE_PRESTACIONES',
+                               'NETO','IVA','C_ONCOLOGICO','PREVISION','CONVENIO',
+                               'REGION','CIUDAD','COMUNA']]
+
+
+#Aquí se modifican los datos que se encuentren en PATOLOGIA.
+lista=[]
+lista_mayor=[]
+i=0
+while i<len(df_unificacion):
+    if df_unificacion['PATOLOGIA'][i]=='nan' or df_unificacion['PATOLOGIA'][i]=='OTRO':
+        lista_mayor.append('SIN INFORMACIÓN')
+        i=i+1
+    else:
+        lista_mayor.append(df_unificacion['PATOLOGIA'][i])
+        i=i+1
+df_unificacion['PATOLOGIA']=lista_mayor
+        
+
+print('Ya se modificó la columna PATOLOGIA')
+
+
+
+
+
+#Modificar columna SEXO.
+lista=[]
+lista_mayor=[]
+i=0
+while i<len(df_unificacion):
+    if i==len(df_unificacion)-1:
+        lista_mayor.append(df_unificacion['SEXO'][i])
+        break
+    else:
+        if df_unificacion['RUT'][i]==df_unificacion['RUT'][i+1]:
+            lista.append(df_unificacion['SEXO'][i])
+            j=i+1
+            while j<len(df_unificacion):
+                if j==len(df_unificacion)-1:
+                    lista.append(df_unificacion['SEXO'][j])
+                    if 'Masculino' in lista:
+                        k=0
+                        while k<len(lista):
+                            if lista[k]=='nan':
+                                lista[k]='Masculino'
+                                k=k+1
+                            else:
+                                lista[k]=lista[k]
+                                k=k+1
+                    else:
+                        if 'Femenino' in lista:
+                            k=0
+                            while k<len(lista):
+                                if lista[k]=='nan':
+                                    lista[k]='Femenino'
+                                    k=k+1
+                                else:
+                                    lista[k]=lista[k]
+                                    k=k+1
+                        else:
+                            k=0
+                            while k<len(lista):
+                                lista[k]=lista[k]
+                                k=k+1
+                    w=0
+                    while w<len(lista):
+                        lista_mayor.append(lista[w])
+                        w=w+1
+                    while i<j:
+                        i=i+1
+                    i=j+1
+                    lista=[]
+                    break
+                else:
+                    if df_unificacion['RUT'][j]==df_unificacion['RUT'][j+1]:
+                        lista.append(df_unificacion['SEXO'][j])
+                        j=j+1
+                    else:
+                        lista.append(df_unificacion['SEXO'][j])
+                        if 'Masculino' in lista:
+                            k=0
+                            while k<len(lista):
+                                if lista[k]=='nan':
+                                    lista[k]='Masculino'
+                                    k=k+1
+                                else:
+                                    lista[k]=lista[k]
+                                    k=k+1
+                        else:
+                            if 'Femenino' in lista:
+                                k=0
+                                while k<len(lista):
+                                    if lista[k]=='nan':
+                                        lista[k]='Femenino'
+                                        k=k+1
+                                    else:
+                                        lista[k]=lista[k]
+                                        k=k+1
+                            else:
+                                k=0
+                                while k<len(lista):
+                                    lista[k]=lista[k]
+                                    k=k+1
+                        w=0
+                        while w<len(lista):
+                            lista_mayor.append(lista[w])
+                            w=w+1
+                        while i<j:
+                            i=i+1
+                        i=j+1
+                        lista=[]
+                        break
+        else:
+            lista_mayor.append(df_unificacion['SEXO'][i])
+            i=i+1
+df_unificacion['SEXO']=lista_mayor
+
+
+print('Ya se modificó la columna SEXO')
+
+
+
+lista=[]
+lista_mayor=[]
+i=0
+while i<len(df_unificacion):
+    if i==len(df_unificacion)-1:
+        lista.append(df_unificacion['C_ONCOLOGICO'][i])
+        cobertura=lista[0]
+        if cobertura=='SIN CONV. ONC.':
+            cobertura='SIN CONVENIO'
+        else:
+            if cobertura=='nan' or cobertura=='ESTADOS DEL CONVENIO ONCOLOGICO':
+                cobertura='SIN INFORMACIÓN'
+            else:
+                cobertura='CON CONVENIO'
+        lista_mayor.append(cobertura)
+        lista=[]
+        break
+    else:
+        if df_unificacion['RUT'][i]==df_unificacion['RUT'][i+1]:
+            lista.append(df_unificacion['C_ONCOLOGICO'][i])
+            j=i+1
+            while j<len(df_unificacion):
+                if j==len(df_unificacion)-1:
+                    lista.append(df_unificacion['C_ONCOLOGICO'][j])
+                    lista.reverse()
+                    duplicados=[]
+                    t=0
+                    while t<len(lista):
+                        if lista[t] not in duplicados:
+                            duplicados.append(lista[t])
+                            t=t+1
+                        else:
+                            t=t+1
+                    if 'nan' in duplicados:
+                        duplicados.remove('nan')
+                    if duplicados==[]:
+                        duplicados.append('SIN INFORMACIÓN')
+                    cobertura=duplicados[0]
+                    if cobertura=='SIN CONV. ONC.':
+                        cobertura='SIN CONVENIO'
+                    else:
+                        if cobertura=='nan' or cobertura=='ESTADOS DEL CONVENIO ONCOLOGICO':
+                            cobertura='SIN INFORMACIÓN'
+                        else:
+                            cobertura='CON CONVENIO'
+                    lista_mayor.append(cobertura)
+                    while i<j:
+                        lista_mayor.append(cobertura)
+                        i=i+1
+                    i=j+1
+                    lista=[]
+                    break
+                else:
+                    if df_unificacion['RUT'][j]==df_unificacion['RUT'][j+1]:
+                        lista.append(df_unificacion['C_ONCOLOGICO'][j])
+                        j=j+1
+                    else:
+                        lista.append(df_unificacion['C_ONCOLOGICO'][j])
+                        lista.reverse()
+                        duplicados=[]
+                        t=0
+                        while t<len(lista):
+                            if lista[t] not in duplicados:
+                                duplicados.append(lista[t])
+                                t=t+1
+                            else:
+                                t=t+1
+                        if 'nan' in duplicados:
+                            duplicados.remove('nan')
+                        if duplicados==[]:
+                            duplicados.append('SIN INFORMACIÓN')
+                        cobertura=duplicados[0]
+                        if cobertura=='SIN CONV. ONC.':
+                            cobertura='SIN CONVENIO'
+                        else:
+                            if cobertura=='nan' or cobertura=='ESTADOS DEL CONVENIO ONCOLOGICO':
+                                cobertura='SIN INFORMACIÓN'
+                            else:
+                                cobertura='CON CONVENIO'
+                        lista_mayor.append(cobertura)
+                        while i<j:
+                            lista_mayor.append(cobertura)
+                            i=i+1
+                        i=j+1
+                        lista=[]
+                        break
+        else:
+            lista.append(df_unificacion['C_ONCOLOGICO'][i])
+            cobertura=lista[0]
+            if cobertura=='SIN CONV. ONC.':
+                cobertura='SIN CONVENIO'
+            else:
+                if cobertura=='nan' or cobertura=='ESTADOS DEL CONVENIO ONCOLOGICO':
+                    cobertura='SIN INFORMACIÓN'
+                else:
+                    cobertura='CON CONVENIO'
+            lista_mayor.append(cobertura)
+            lista=[]
+            i=i+1
+
+df_unificacion['C_ONCOLOGICO']=lista_mayor
+
+
+print('Ya se modificó la columna C_ONCOLOGICO')
+
+
+
+#Ahora comenzamos con las previsiones.
+lista=[]
+lista_mayor=[]
+i=0
+while i<len(df_unificacion):
+    if i==len(df_unificacion)-1:
+        lista.append(df_unificacion['PREVISION'][i])
+        cobertura=lista[0]
+        if cobertura=='nan':
+            cobertura='SIN INFORMACIÓN'
+        lista_mayor.append(cobertura)
+        lista=[]
+        break
+    else:
+        if df_unificacion['RUT'][i]==df_unificacion['RUT'][i+1]:
+            lista.append(df_unificacion['PREVISION'][i])
+            j=i+1
+            while j<len(df_unificacion):
+                if j==len(df_unificacion)-1:
+                    lista.append(df_unificacion['PREVISION'][j])
+                    lista.reverse()
+                    duplicados=[]
+                    t=0
+                    while t<len(lista):
+                        if lista[t] not in duplicados:
+                            duplicados.append(lista[t])
+                            t=t+1
+                        else:
+                            t=t+1
+                    if 'nan' in duplicados:
+                        duplicados.remove('nan')
+                    if duplicados==[]:
+                        duplicados.append('SIN INFORMACIÓN')
+                    cobertura=duplicados[0]
+                    lista_mayor.append(cobertura)
+                    while i<j:
+                        lista_mayor.append(cobertura)
+                        i=i+1
+                    i=j+1
+                    lista=[]
+                    break
+                else:
+                    if df_unificacion['RUT'][j]==df_unificacion['RUT'][j+1]:
+                        lista.append(df_unificacion['PREVISION'][j])
+                        j=j+1
+                    else:
+                        lista.append(df_unificacion['PREVISION'][j])
+                        lista.reverse()
+                        duplicados=[]
+                        t=0
+                        while t<len(lista):
+                            if lista[t] not in duplicados:
+                                duplicados.append(lista[t])
+                                t=t+1
+                            else:
+                                t=t+1
+                        if 'nan' in duplicados:
+                            duplicados.remove('nan')
+                        if duplicados==[]:
+                            duplicados.append('SIN INFORMACIÓN')
+                        cobertura=duplicados[0]
+                        lista_mayor.append(cobertura)
+                        while i<j:
+                            lista_mayor.append(cobertura)
+                            i=i+1
+                        i=j+1
+                        lista=[]
+                        break
+        else:
+            lista.append(df_unificacion['PREVISION'][i])
+            cobertura=lista[0]
+            if cobertura=='nan':
+                cobertura='SIN INFORMACIÓN'
+            lista_mayor.append(cobertura)
+            lista=[]
+            i=i+1
+
+df_unificacion['PREVISION']=lista_mayor
+
+print('Ya se modificó la columna PREVISION')
+
+
+#Ahora viene convenio.
+
+lista=[]
+lista_mayor=[]
+i=0
+while i<len(df_unificacion):
+    if i==len(df_unificacion)-1:
+        lista.append(df_unificacion['CONVENIO'][i])
+        cobertura=lista[0]
+        if cobertura=='nan':
+            cobertura='SIN INFORMACIÓN'
+        lista_mayor.append(cobertura)
+        lista=[]
+        break
+    else:
+        if df_unificacion['RUT'][i]==df_unificacion['RUT'][i+1]:
+            lista.append(df_unificacion['CONVENIO'][i])
+            j=i+1
+            while j<len(df_unificacion):
+                if j==len(df_unificacion)-1:
+                    lista.append(df_unificacion['CONVENIO'][j])
+                    lista.reverse()
+                    duplicados=[]
+                    t=0
+                    while t<len(lista):
+                        if lista[t] not in duplicados:
+                            duplicados.append(lista[t])
+                            t=t+1
+                        else:
+                            t=t+1
+                    if 'nan' in duplicados:
+                        duplicados.remove('nan')
+                    if duplicados==[]:
+                        duplicados.append('SIN INFORMACIÓN')
+                    cobertura=duplicados[0]
+                    lista_mayor.append(cobertura)
+                    while i<j:
+                        lista_mayor.append(cobertura)
+                        i=i+1
+                    i=j+1
+                    lista=[]
+                    break
+                else:
+                    if df_unificacion['RUT'][j]==df_unificacion['RUT'][j+1]:
+                        lista.append(df_unificacion['CONVENIO'][j])
+                        j=j+1
+                    else:
+                        lista.append(df_unificacion['CONVENIO'][j])
+                        lista.reverse()
+                        duplicados=[]
+                        t=0
+                        while t<len(lista):
+                            if lista[t] not in duplicados:
+                                duplicados.append(lista[t])
+                                t=t+1
+                            else:
+                                t=t+1
+                        if 'nan' in duplicados:
+                            duplicados.remove('nan')
+                        if duplicados==[]:
+                            duplicados.append('SIN INFORMACIÓN')
+                        cobertura=duplicados[0]
+                        lista_mayor.append(cobertura)
+                        while i<j:
+                            lista_mayor.append(cobertura)
+                            i=i+1
+                        i=j+1
+                        lista=[]
+                        break
+        else:
+            lista.append(df_unificacion['CONVENIO'][i])
+            cobertura=lista[0]
+            if cobertura=='nan':
+                cobertura='SIN INFORMACIÓN'
+            lista_mayor.append(cobertura)
+            lista=[]
+            i=i+1
+df_unificacion['CONVENIO']=lista_mayor
+
+
+print('Ya se modificó la columna CONVENIO')
+
+
+
+#Ahora se modifica columna de región.
+lista=[]
+lista_mayor=[]
+i=0
+while i<len(df_unificacion):
+    if i==len(df_unificacion)-1:
+        lista.append(df_unificacion['REGION'][i])
+        cobertura=lista[0]
+        if cobertura=='nan':
+            cobertura='SIN INFORMACIÓN'
+        lista_mayor.append(cobertura)
+        lista=[]
+        break
+    else:
+        if df_unificacion['RUT'][i]==df_unificacion['RUT'][i+1]:
+            lista.append(df_unificacion['REGION'][i])
+            j=i+1
+            while j<len(df_unificacion):
+                if j==len(df_unificacion)-1:
+                    lista.append(df_unificacion['REGION'][j])
+                    lista.reverse()
+                    duplicados=[]
+                    t=0
+                    while t<len(lista):
+                        if lista[t] not in duplicados:
+                            duplicados.append(lista[t])
+                            t=t+1
+                        else:
+                            t=t+1
+                    if 'nan' in duplicados:
+                        duplicados.remove('nan')
+                    if duplicados==[]:
+                        duplicados.append('SIN INFORMACIÓN')
+                    cobertura=duplicados[0]
+                    lista_mayor.append(cobertura)
+                    while i<j:
+                        lista_mayor.append(cobertura)
+                        i=i+1
+                    i=j+1
+                    lista=[]
+                    break
+                else:
+                    if df_unificacion['RUT'][j]==df_unificacion['RUT'][j+1]:
+                        lista.append(df_unificacion['REGION'][j])
+                        j=j+1
+                    else:
+                        lista.append(df_unificacion['REGION'][j])
+                        lista.reverse()
+                        duplicados=[]
+                        t=0
+                        while t<len(lista):
+                            if lista[t] not in duplicados:
+                                duplicados.append(lista[t])
+                                t=t+1
+                            else:
+                                t=t+1
+                        if 'nan' in duplicados:
+                            duplicados.remove('nan')
+                        if duplicados==[]:
+                            duplicados.append('SIN INFORMACIÓN')
+                        cobertura=duplicados[0]
+                        lista_mayor.append(cobertura)
+                        while i<j:
+                            lista_mayor.append(cobertura)
+                            i=i+1
+                        i=j+1
+                        lista=[]
+                        break
+        else:
+            lista.append(df_unificacion['REGION'][i])
+            cobertura=lista[0]
+            if cobertura=='nan':
+                cobertura='SIN INFORMACIÓN'
+            lista_mayor.append(cobertura)
+            lista=[]
+            i=i+1
+
+
+
+df_unificacion['REGION']=lista_mayor
+
+print('Ya se modificó la columna REGION')
+
+
+
+#Ahora viene columna CIUDAD
+
+
+lista=[]
+lista_mayor=[]
+i=0
+while i<len(df_unificacion):
+    if i==len(df_unificacion)-1:
+        lista.append(df_unificacion['CIUDAD'][i])
+        cobertura=lista[0]
+        if cobertura=='nan':
+            cobertura='SIN INFORMACIÓN'
+        lista_mayor.append(cobertura)
+        lista=[]
+        break
+    else:
+        if df_unificacion['RUT'][i]==df_unificacion['RUT'][i+1]:
+            lista.append(df_unificacion['CIUDAD'][i])
+            j=i+1
+            while j<len(df_unificacion):
+                if j==len(df_unificacion)-1:
+                    lista.append(df_unificacion['CIUDAD'][j])
+                    lista.reverse()
+                    duplicados=[]
+                    t=0
+                    while t<len(lista):
+                        if lista[t] not in duplicados:
+                            duplicados.append(lista[t])
+                            t=t+1
+                        else:
+                            t=t+1
+                    if 'nan' in duplicados:
+                        duplicados.remove('nan')
+                    if duplicados==[]:
+                        duplicados.append('SIN INFORMACIÓN')
+                    cobertura=duplicados[0]
+                    lista_mayor.append(cobertura)
+                    while i<j:
+                        lista_mayor.append(cobertura)
+                        i=i+1
+                    i=j+1
+                    lista=[]
+                    break
+                else:
+                    if df_unificacion['RUT'][j]==df_unificacion['RUT'][j+1]:
+                        lista.append(df_unificacion['CIUDAD'][j])
+                        j=j+1
+                    else:
+                        lista.append(df_unificacion['CIUDAD'][j])
+                        lista.reverse()
+                        duplicados=[]
+                        t=0
+                        while t<len(lista):
+                            if lista[t] not in duplicados:
+                                duplicados.append(lista[t])
+                                t=t+1
+                            else:
+                                t=t+1
+                        if 'nan' in duplicados:
+                            duplicados.remove('nan')
+                        if duplicados==[]:
+                            duplicados.append('SIN INFORMACIÓN')
+                        cobertura=duplicados[0]
+                        lista_mayor.append(cobertura)
+                        while i<j:
+                            lista_mayor.append(cobertura)
+                            i=i+1
+                        i=j+1
+                        lista=[]
+                        break
+        else:
+            lista.append(df_unificacion['CIUDAD'][i])
+            cobertura=lista[0]
+            if cobertura=='nan':
+                cobertura='SIN INFORMACIÓN'
+            lista_mayor.append(cobertura)
+            lista=[]
+            i=i+1
+
+
+df_unificacion['CIUDAD']=lista_mayor
+
+
+
+
+print('Ya se modificó la columna CIUDAD')
+
+
+
+#Ahora columna COMUNA.
+
+
+lista=[]
+lista_mayor=[]
+i=0
+while i<len(df_unificacion):
+    if i==len(df_unificacion)-1:
+        lista.append(df_unificacion['COMUNA'][i])
+        cobertura=lista[0]
+        if cobertura=='nan':
+            cobertura='SIN INFORMACIÓN'
+        lista_mayor.append(cobertura)
+        lista=[]
+        break
+    else:
+        if df_unificacion['RUT'][i]==df_unificacion['RUT'][i+1]:
+            lista.append(df_unificacion['COMUNA'][i])
+            j=i+1
+            while j<len(df_unificacion):
+                if j==len(df_unificacion)-1:
+                    lista.append(df_unificacion['COMUNA'][j])
+                    lista.reverse()
+                    duplicados=[]
+                    t=0
+                    while t<len(lista):
+                        if lista[t] not in duplicados:
+                            duplicados.append(lista[t])
+                            t=t+1
+                        else:
+                            t=t+1
+                    if 'nan' in duplicados:
+                        duplicados.remove('nan')
+                    if duplicados==[]:
+                        duplicados.append('SIN INFORMACIÓN')
+                    cobertura=duplicados[0]
+                    lista_mayor.append(cobertura)
+                    while i<j:
+                        lista_mayor.append(cobertura)
+                        i=i+1
+                    i=j+1
+                    lista=[]
+                    break
+                else:
+                    if df_unificacion['RUT'][j]==df_unificacion['RUT'][j+1]:
+                        lista.append(df_unificacion['COMUNA'][j])
+                        j=j+1
+                    else:
+                        lista.append(df_unificacion['COMUNA'][j])
+                        lista.reverse()
+                        duplicados=[]
+                        t=0
+                        while t<len(lista):
+                            if lista[t] not in duplicados:
+                                duplicados.append(lista[t])
+                                t=t+1
+                            else:
+                                t=t+1
+                        if 'nan' in duplicados:
+                            duplicados.remove('nan')
+                        if duplicados==[]:
+                            duplicados.append('SIN INFORMACIÓN')
+                        cobertura=duplicados[0]
+                        lista_mayor.append(cobertura)
+                        while i<j:
+                            lista_mayor.append(cobertura)
+                            i=i+1
+                        i=j+1
+                        lista=[]
+                        break
+        else:
+            lista.append(df_unificacion['COMUNA'][i])
+            cobertura=lista[0]
+            if cobertura=='nan':
+                cobertura='SIN INFORMACIÓN'
+            lista_mayor.append(cobertura)
+            lista=[]
+            i=i+1
+
+
+
+df_unificacion['COMUNA']=lista_mayor
+
+
+
+print('Ya se modificó la columna COMUNA')
+
+
+
+#Estas primeras condiciones son para colocar en todos los RUTs
+#que tengan fecha de nacimiento su respectiva fecha de nacimiento.
+lista=[]
+lista_mayor=[]
+i=0
+while i<len(df_unificacion):
+    if i==len(df_unificacion)-1:
+        lista_mayor.append(df_unificacion['FECHA_NACIMIENTO'][i])
+        break
+    else:
+        if df_unificacion['RUT'][i]==df_unificacion['RUT'][i+1]:
+            lista.append(df_unificacion['FECHA_NACIMIENTO'][i])
+            j=i+1
+            while j<len(df_unificacion):
+                if j==len(df_unificacion)-1:
+                    lista.append(df_unificacion['FECHA_NACIMIENTO'][j])
+                    duplicados=[]
+                    t=0
+                    while t<len(lista):
+                        if lista[t] not in duplicados:
+                            duplicados.append(lista[t])
+                            t=t+1
+                        else:
+                            t=t+1
+                    if 'nan' in duplicados:
+                        duplicados.remove('nan')
+                    if duplicados==[]:
+                        duplicados.append('nan')
+                    cobertura=duplicados[0]
+                    lista_mayor.append(cobertura)
+                    while i<j:
+                        lista_mayor.append(cobertura)
+                        i=i+1
+                    i=j+1
+                    lista=[]
+                    break
+                else:
+                    if df_unificacion['RUT'][j]==df_unificacion['RUT'][j+1]:
+                        lista.append(df_unificacion['FECHA_NACIMIENTO'][j])
+                        j=j+1
+                    else:
+                        lista.append(df_unificacion['FECHA_NACIMIENTO'][j])
+                        duplicados=[]
+                        t=0
+                        while t<len(lista):
+                            if lista[t] not in duplicados:
+                                duplicados.append(lista[t])
+                                t=t+1
+                            else:
+                                t=t+1
+                        if 'nan' in duplicados:
+                            duplicados.remove('nan')
+                        if duplicados==[]:
+                            duplicados.append('nan')
+                        cobertura=duplicados[0]
+                        lista_mayor.append(cobertura)
+                        while i<j:
+                            lista_mayor.append(cobertura)
+                            i=i+1
+                        i=j+1
+                        lista=[]
+                        break
+        else:
+            lista_mayor.append(df_unificacion['FECHA_NACIMIENTO'][i])
+            i=i+1
+df_unificacion['FECHA_NACIMIENTO']=lista_mayor
+
+
+lista_edad=[]
+i=0
+while i<len(df_unificacion):
+    if df_unificacion['FECHA_NACIMIENTO'][i]=='nan':
+        lista_edad.append(df_unificacion['EDAD'][i])
+        i=i+1
+    else:
+        dias=0
+        for anio in range(datetime.strptime(df_unificacion['FECHA_NACIMIENTO'][i],'%Y-%m-%d').year, datetime.strptime(df_unificacion['FECHA_EVENTO'][i],'%Y-%m-%d').year):
+            if anio % 4 == 0 and (anio % 100 != 0 or anio % 400 == 0):
+                dias=dias+1
+        dias_nac=(datetime.strptime(df_unificacion['FECHA_EVENTO'][i],'%Y-%m-%d') - datetime.strptime(df_unificacion['FECHA_NACIMIENTO'][i],'%Y-%m-%d')).days - dias
+        edad_en_anios=dias_nac/365
+        lista_edad.append(math.trunc(edad_en_anios))
+        i=i+1
+df_unificacion['EDAD']=lista_edad
+
+
+
+
+
+lista=[]
+lista_mayor=[]
+i=0
+while i<len(df_unificacion):
+    if i==len(df_unificacion)-1:
+        lista_mayor.append(df_unificacion['EDAD'][i])
+        break
+    else:
+        if df_unificacion['RUT'][i]==df_unificacion['RUT'][i+1] and df_unificacion['FECHA_NACIMIENTO'][i]=='nan':
+            lista.append(df_unificacion['EDAD'][i])
+            j=i+1
+            while j<len(df_unificacion):
+                if j==len(df_unificacion)-1:
+                    lista.append(df_unificacion['EDAD'][j])
+                    duplicados=[]
+                    t=0
+                    while t<len(lista):
+                        if lista[t] not in duplicados:
+                            duplicados.append(lista[t])
+                            t=t+1
+                        else:
+                            t=t+1
+                    if 0 in duplicados:
+                        duplicados.remove(0)
+                    if duplicados==[]:
+                        duplicados.append(0)
+                    duplicados.sort()
+                    cobertura=duplicados[0]
+                    lista_mayor.append(cobertura)
+                    if cobertura==0:
+                        while i<j:
+                            lista_mayor.append(0)
+                            i=i+1
+                        i=j+1
+                        lista=[]
+                        break
+                    else:
+                        while i<j:
+                            if datetime.strptime(df_unificacion['FECHA_EVENTO'][i],'%Y-%m-%d').year==datetime.strptime(df_unificacion['FECHA_EVENTO'][i+1],'%Y-%m-%d').year:
+                                lista_mayor.append(cobertura)
+                                i=i+1
+                            else:
+                                diferencia=datetime.strptime(df_unificacion['FECHA_EVENTO'][i+1],'%Y-%m-%d').year-datetime.strptime(df_unificacion['FECHA_EVENTO'][i],'%Y-%m-%d').year
+                                cobertura=cobertura+diferencia
+                                i=i+1
+                        i=j+1
+                        lista=[]
+                        break
+                else:
+                    if df_unificacion['RUT'][j]==df_unificacion['RUT'][j+1] and df_unificacion['FECHA_NACIMIENTO'][j]=='nan':
+                        lista.append(df_unificacion['EDAD'][j])
+                        j=j+1
+                    else:
+                        lista.append(df_unificacion['EDAD'][j])
+                        duplicados=[]
+                        t=0
+                        while t<len(lista):
+                            if lista[t] not in duplicados:
+                                duplicados.append(lista[t])
+                                t=t+1
+                            else:
+                                t=t+1
+                        if 0 in duplicados:
+                            duplicados.remove(0)
+                        if duplicados==[]:
+                            duplicados.append(0)
+                        duplicados.sort()
+                        cobertura=duplicados[0]
+                        lista_mayor.append(cobertura)
+                        if cobertura==0:
+                            while i<j:
+                                lista_mayor.append(0)
+                                i=i+1
+                            i=j+1
+                            lista=[]
+                            break
+                        else:
+                            while i<j:
+                                if datetime.strptime(df_unificacion['FECHA_EVENTO'][i],'%Y-%m-%d').year==datetime.strptime(df_unificacion['FECHA_EVENTO'][i+1],'%Y-%m-%d').year:
+                                    lista_mayor.append(cobertura)
+                                    i=i+1
+                                else:
+                                    diferencia=datetime.strptime(df_unificacion['FECHA_EVENTO'][i+1],'%Y-%m-%d').year-datetime.strptime(df_unificacion['FECHA_EVENTO'][i],'%Y-%m-%d').year
+                                    cobertura=cobertura+diferencia
+                                    lista_mayor.append(cobertura)
+                                    i=i+1
+                            i=j+1
+                            lista=[]
+                            break
+        else:
+            lista_mayor.append(df_unificacion['EDAD'][i])
+            i=i+1
+df_unificacion['EDAD']=lista_mayor
+
+
+
+print('Ya se modificó la columna EDAD Y FECHA_NACIMIENTO')
+
+
+#Ahora viene columna de DIAGNOSTICO
+
+
+lista=[]
+lista_mayor=[]
+i=0
+while i<len(df_unificacion):
+    if i==len(df_unificacion)-1:
+        lista.append(df_unificacion['DIAGNOSTICO'][i])
+        cobertura=lista[0]
+        if cobertura=='nan':
+            cobertura='SIN INFORMACIÓN'
+        lista_mayor.append(cobertura)
+        lista=[]
+        break
+    else:
+        if df_unificacion['RUT'][i]==df_unificacion['RUT'][i+1]:
+            lista.append(df_unificacion['DIAGNOSTICO'][i])
+            j=i+1
+            while j<len(df_unificacion):
+                if j==len(df_unificacion)-1:
+                    lista.append(df_unificacion['DIAGNOSTICO'][j])
+                    lista.reverse()
+                    duplicados=[]
+                    t=0
+                    while t<len(lista):
+                        if lista[t] not in duplicados:
+                            duplicados.append(lista[t])
+                            t=t+1
+                        else:
+                            t=t+1
+                    if 'nan' in duplicados:
+                        duplicados.remove('nan')
+                    if duplicados==[]:
+                        duplicados.append('SIN INFORMACIÓN')
+                    cobertura=duplicados[0]
+                    lista_mayor.append(cobertura)
+                    while i<j:
+                        lista_mayor.append(cobertura)
+                        i=i+1
+                    i=j+1
+                    lista=[]
+                    break
+                else:
+                    if df_unificacion['RUT'][j]==df_unificacion['RUT'][j+1]:
+                        lista.append(df_unificacion['DIAGNOSTICO'][j])
+                        j=j+1
+                    else:
+                        lista.append(df_unificacion['DIAGNOSTICO'][j])
+                        lista.reverse()
+                        duplicados=[]
+                        t=0
+                        while t<len(lista):
+                            if lista[t] not in duplicados:
+                                duplicados.append(lista[t])
+                                t=t+1
+                            else:
+                                t=t+1
+                        if 'nan' in duplicados:
+                            duplicados.remove('nan')
+                        if duplicados==[]:
+                            duplicados.append('SIN INFORMACIÓN')
+                        cobertura=duplicados[0]
+                        lista_mayor.append(cobertura)
+                        while i<j:
+                            lista_mayor.append(cobertura)
+                            i=i+1
+                        i=j+1
+                        lista=[]
+                        break
+        else:
+            lista.append(df_unificacion['DIAGNOSTICO'][i])
+            cobertura=lista[0]
+            if cobertura=='nan':
+                cobertura='SIN INFORMACIÓN'
+            lista_mayor.append(cobertura)
+            lista=[]
+            i=i+1
+
+df_unificacion['DIAGNOSTICO']=lista_mayor
+
+
+print('Ya se modificó la columna DIAGNOSTICO')
+
+
+
+
+
+#Aquí se modifica el macro evento "Radioterapia. Quimioterapia".
+lista_mayor=[]
+i=0
+while i<len(df_unificacion):
+    if df_unificacion['MACRO_EVENTO'][i]=='Radioterapia, Quimioterapia':
+        lista_mayor.append('Consulta de control')
+        i=i+1
+    else:
+        lista_mayor.append(df_unificacion['MACRO_EVENTO'][i])
+        i=i+1
+df_unificacion['MACRO_EVENTO']=lista_mayor
+
+
+
+
+#Aquí se modifica el evento "Radioterapia. Quimioterapia".
+lista_mayor=[]
+i=0
+while i<len(df_unificacion):
+    if df_unificacion['EVENTO'][i]=='Radioterapia, Quimioterapia':
+        lista_mayor.append('Consulta de control')
+        i=i+1
+    else:
+        lista_mayor.append(df_unificacion['EVENTO'][i])
+        i=i+1
+df_unificacion['EVENTO']=lista_mayor
+
+
+
+
+#Eliminación de pacientes que solo aparecen con evento 'defunción'.
+lista=[]
+lista_mayor=[]
+i=0
+while i<len(df_unificacion):
+    if i==0:
+        if df_unificacion['MACRO_EVENTO'][i]=='Defunción':
+            lista_mayor.append('')
+            i=i+1
+        else:
+            lista_mayor.append(df_unificacion['MACRO_EVENTO'][i])
+            i=i+1
+    else:
+        if df_unificacion['MACRO_EVENTO'][i]=='Defunción' and df_unificacion['RUT'][i]!=df_unificacion['RUT'][i-1]:
+            lista_mayor.append('')
+            i=i+1
+        else:
+            lista_mayor.append(df_unificacion['MACRO_EVENTO'][i])
+            i=i+1
+df_unificacion['MACRO_EVENTO']=lista_mayor
+
+
+#Eliminar filas con eventos vacíos.
+df_unificacion=df_unificacion.drop(df_unificacion[df_unificacion['MACRO_EVENTO']==''].index)
+#Reseteo de índices.
+df_unificacion.index=range(df_unificacion.shape[0])
+
+
+
+print('Hora término: '+str(datetime.now())[11:19]+' hrs.')
+
+
+
+#Eliminar pacientes PRUEBA.
+nombres=[]
+i=0
+while i<len(df_unificacion):
+    if 'PRUEBA' in df_unificacion['NOMBRE'][i].upper() or 'FALP' in df_unificacion['NOMBRE'][i].upper() or 'MOVIL' in df_unificacion['NOMBRE'][i].upper() or 'LABORATORIO' in df_unificacion['NOMBRE'][i].upper() or 'CLINICA' in df_unificacion['NOMBRE'][i].upper() or 'UNIVERSIDAD' in df_unificacion['NOMBRE'][i].upper() or 'UNIVERSIDAD' in df_unificacion['NOMBRE'][i].upper():
+        nombres.append('')
+        i=i+1
+    else:
+        nombres.append(df_unificacion['NOMBRE'][i])
+        i=i+1
+df_unificacion['NOMBRE']=nombres
+
+
+#Eliminar filas con nombres vacíos.
+df_unificacion=df_unificacion.drop(df_unificacion[df_unificacion['NOMBRE']==''].index)
+#Reseteo de índices.
+df_unificacion.index=range(df_unificacion.shape[0])
+
+
+
+
+
+#------Se ejecutó hasta aquí.
+
+
+#Creación de CSV.
+ruta_exportacion='C:/Users/edgar/Downloads/EVENTOS_2/df_unificacion_8.csv'
+df_unificacion.to_csv(path_or_buf=ruta_exportacion)
+
+
+
+
