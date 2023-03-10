@@ -1,0 +1,840 @@
+#CAJA.
+print('Comienzo de caja')
+import pandas as pd
+from datetime import datetime
+from datetime import timedelta
+
+print('Hora de inicio: '+str(datetime.now())[11:19]+' hrs.')
+
+#Importar base de datos.
+ruta_importacion='C:/Users/edgar/Downloads/RESPALDO/df_caja_respaldo.csv'
+df_caja=pd.read_csv(ruta_importacion)
+
+print('Ya se importó la data')
+
+#Cambiar columnas a string y eliminar espacios.
+lista_inicial=['TIPO_PRESTACION','HORA','FECHA_ATENCION','FOLIO',
+               'RUT_PACIENTE','EDAD','SEXO','DECRIPCION','PREVISION',
+               'CONVENIO','REGION','CIUDAD','COMUNA']
+j=0
+while j<len(lista_inicial):
+    #Cambiar las columnas de texto a string.
+    lista=[]
+    i=0
+    while i<len(df_caja):
+        lista.append(str(df_caja[lista_inicial[j]][i]))
+        i=i+1
+    df_caja[lista_inicial[j]]=lista
+    print(lista_inicial[j])
+    #Eliminar los espacios innecesarios.
+    nueva_lista=[]
+    i=0
+    while i<len(df_caja):
+        cadena=df_caja[lista_inicial[j]][i]
+        cadena_limpia=cadena.strip()
+        nueva_lista.append(cadena_limpia)
+        i=i+1
+    df_caja[lista_inicial[j]]=nueva_lista
+    j=j+1
+
+print('Ya se transformaron a string las columnas')
+
+#Eliminación de RUT 0.
+df_caja=df_caja.drop(df_caja[df_caja['RUT_PACIENTE']=='0'].index)
+#Reseteo de índices.
+df_caja.index=range(df_caja.shape[0])
+#Ahora hay que buscar los RUTs que contienen letras.
+lista_indices=[]
+i=0
+while i<len(df_caja):
+    if df_caja['RUT_PACIENTE'][i].isdigit()==False:
+        #Reúne los índices de aquellos registros que tienen letras en
+        #la columna RUT_PACIENTE.
+        lista_indices.append(i)
+        i=i+1
+    else:
+        i=i+1
+#Ahora quiero eliminar esas filas.
+df_caja=df_caja.drop(lista_indices,axis=0,index=None,columns=None,level=None,inplace=False,errors='raise')
+#Reseteo de índices.
+df_caja.index=range(df_caja.shape[0])
+#Cambiar la columna RUT a int.
+rut_int=[]
+i=0
+while i<len(df_caja):
+    rut_int.append(int(df_caja['RUT_PACIENTE'][i]))
+    i=i+1
+df_caja['RUT_PACIENTE']=rut_int
+
+
+
+#Dejar columna EDAD en formato int.
+edad=[]
+i=0
+while i<len(df_caja):
+    if df_caja['EDAD'][i]=='nan':
+        edad.append(0)
+        i=i+1
+    else:
+        edad.append(int(df_caja['EDAD'][i][:-2]))
+        i=i+1
+df_caja['EDAD']=edad
+
+
+
+#Cambiar formato del sexo del paciente.
+sexo=[]
+i=0
+while i<len(df_caja):
+    if df_caja['SEXO'][i]=='FE' or df_caja['SEXO'][i]=='Fe':
+        sexo.append('Femenino')
+        i=i+1
+    else:
+        if df_caja['SEXO'][i]=='MA' or df_caja['SEXO'][i]=='Ma':
+            sexo.append('Masculino')
+            i=i+1
+        else:
+            sexo.append('')
+            i=i+1
+df_caja['SEXO']=sexo
+
+
+#Eliminar horas de la columna FECHA_ATENCION.
+lista_fechas=[]
+i=0
+while i<len(df_caja):
+    lista_fechas.append(df_caja['FECHA_ATENCION'][i][0:10])
+    i=i+1
+df_caja['FECHA_ATENCION']=lista_fechas
+
+print('Ahora se cambian los nombres de algunos tipos de prestaciones')
+
+#Renombramiento de tipo de prestaciones.
+lista_prestaciones=[]
+i=0
+while i<len(df_caja):
+    if df_caja['TIPO_PRESTACION'][i]=='Otros, Medicina Nuclear' or df_caja['TIPO_PRESTACION'][i]=='Imagenología, Derecho Pabellón' or df_caja['TIPO_PRESTACION'][i]=='Anatomía Patológica, Laboratorio' or df_caja['TIPO_PRESTACION'][i]=='*** D° Pabellon ***' or df_caja['TIPO_PRESTACION'][i]=='Examenes, Honorarios Médicos' or df_caja['TIPO_PRESTACION'][i]=='Otros' or df_caja['TIPO_PRESTACION'][i]=='Eliminada' or df_caja['TIPO_PRESTACION'][i]=='SIN CONCEPTO':
+        if df_caja['TIPO_PRESTACION'][i]=='Otros, Medicina Nuclear':
+            lista_prestaciones.append('Medicina Nuclear')
+            i=i+1
+        if df_caja['TIPO_PRESTACION'][i]=='Imagenología, Derecho Pabellón':
+            lista_prestaciones.append('Imagenología')
+            i=i+1
+        if df_caja['TIPO_PRESTACION'][i]=='Anatomía Patológica, Laboratorio':
+            lista_prestaciones.append('Anatomía Patológica')
+            i=i+1
+        if df_caja['TIPO_PRESTACION'][i]=='*** D° Pabellon ***':
+            lista_prestaciones.append('Diferencia por Arancel')
+            i=i+1
+        if df_caja['TIPO_PRESTACION'][i]=='Examenes, Honorarios Médicos':
+            lista_prestaciones.append('Examenes')
+            i=i+1
+        if df_caja['TIPO_PRESTACION'][i]=='Otros':
+            lista_prestaciones.append('Honorarios Médicos')
+            i=i+1
+        if df_caja['TIPO_PRESTACION'][i]=='Eliminada':
+            lista_prestaciones.append('Atención de Nutricionista')
+            i=i+1
+        if df_caja['TIPO_PRESTACION'][i]=='SIN CONCEPTO':
+            lista_prestaciones.append('Otras prestaciones')
+            i=i+1
+    else:
+        lista_prestaciones.append(df_caja['TIPO_PRESTACION'][i])
+        i=i+1
+df_caja['TIPO_PRESTACION']=lista_prestaciones
+
+
+print('Ya se renombraron los tipos de prestaciones')
+
+
+#Renombramiento de Honorarios Médicos a Consulta Médica.
+lista_prestaciones_nueva=[]
+i=0
+while i<len(df_caja):
+    if df_caja['TIPO_PRESTACION'][i]=='Honorarios Médicos':
+        lista_prestaciones_nueva.append('Consulta Médica')
+        i=i+1
+    else:
+        lista_prestaciones_nueva.append(df_caja['TIPO_PRESTACION'][i])
+        i=i+1
+df_caja['TIPO_PRESTACION']=lista_prestaciones_nueva
+
+
+print('ya se cambió Honorarios Médicos por Consulta Médica')
+
+
+
+
+
+
+
+
+#Creación de columna NETO (NETO=EXENTO+AFECTO)
+df_caja['NETO']=df_caja['EXENTO']+df_caja['AFECTO']
+#Escoger columnas con las que se va a trabajar.
+df_caja=df_caja[['RUT_PACIENTE','PACIENTE','EDAD','SEXO','FOLIO',
+                 'FECHA_ATENCION','HORA','TIPO_PRESTACION','CODIGO_PRESTACION',
+                 'DECRIPCION','NETO','IVA','PREVISION','CONVENIO','REGION',
+                 'CIUDAD','COMUNA']]
+#Ordenar la información de manera ascendente.
+df_caja=df_caja.sort_values(by=['RUT_PACIENTE','FOLIO','FECHA_ATENCION',
+                                'HORA','TIPO_PRESTACION','DECRIPCION'],axis=0,
+                            ascending=True,inplace=False,kind='quicksort',
+                            na_position='last',ignore_index=True)
+
+print('Ya se limpió la data')
+
+
+
+
+
+
+
+
+
+
+
+
+#Obtención de columna de nombre del macro evento.
+lista_evento=[]
+lista_prestacion=[]
+lista_prestacion_duplicados=[]
+lista_tipo=[]
+lista_tipo_duplicados=[]
+evento=''
+i=0
+while i<len(df_caja):
+  #¿Qué pasa si el evento está asociado a un número de folio?
+  if df_caja['FOLIO'][i]!='nan':
+    if i==len(df_caja)-1:
+      #Caso excepcional.
+      lista_prestacion.append(df_caja['TIPO_PRESTACION'][i])
+      break
+    else:
+        if df_caja['FOLIO'][i]==df_caja['FOLIO'][i+1]:
+          lista_prestacion.append(df_caja['TIPO_PRESTACION'][i])
+          j=i+1
+          while j<len(df_caja):
+            if j==len(df_caja)-1:
+                #Hacer algo.
+                lista_prestacion.append(df_caja['TIPO_PRESTACION'][j])
+                break
+            else:
+                if df_caja['FOLIO'][j]==df_caja['FOLIO'][j+1]:
+                  lista_prestacion.append(df_caja['TIPO_PRESTACION'][j])
+                  j=j+1
+                else:
+                  lista_prestacion.append(df_caja['TIPO_PRESTACION'][j])
+                  m=0
+                  while m<len(lista_prestacion):
+                    if lista_prestacion[m] not in lista_prestacion_duplicados:
+                      lista_prestacion_duplicados.append(lista_prestacion[m])
+                      m=m+1
+                    else:
+                      m=m+1
+                  w=0
+                  while w<len(lista_prestacion_duplicados):
+                    if w==0:
+                      evento=lista_prestacion_duplicados[w]
+                      w=w+1
+                    else:
+                      if w==len(lista_prestacion_duplicados)-1:
+                        evento=evento+', '+lista_prestacion_duplicados[w]+'.'
+                        w=w+1
+                      else:
+                        evento=evento+', '+lista_prestacion_duplicados[w]
+                        w=w+1
+                  lista_evento.append(evento)
+                  while i<j:
+                    lista_evento.append('')
+                    i=i+1
+                  i=j+1
+                  lista_prestacion=[]
+                  lista_prestacion_duplicados=[]
+                  break
+        else:
+          lista_evento.append('')
+          i=i+1
+  #¿Qué pasa si no hay número de folio?
+  else:
+    if i==len(df_caja)-1:
+      lista_evento.append(df_caja['TIPO_PRESTACION'][i])
+      break
+    else:
+      if df_caja['RUT_PACIENTE'][i]==df_caja['RUT_PACIENTE'][i+1] and df_caja['FECHA_ATENCION'][i]==df_caja['FECHA_ATENCION'][i+1] and df_caja['HORA'][i]==df_caja['HORA'][i+1]:
+        lista_tipo.append(df_caja['TIPO_PRESTACION'][i])
+        j=i+1
+        while j<len(df_caja):
+          if j==len(df_caja)-1:
+            lista_evento.append(df_caja['TIPO_PRESTACION'][i])
+            while i<j:
+              lista_evento.append('')
+              i=i+1
+            i=j+1
+            break
+          else:
+            if df_caja['RUT_PACIENTE'][j]==df_caja['RUT_PACIENTE'][j+1] and df_caja['FECHA_ATENCION'][j]==df_caja['FECHA_ATENCION'][j+1] and df_caja['HORA'][j]==df_caja['HORA'][j+1]:
+              lista_tipo.append(df_caja['TIPO_PRESTACION'][j])
+              j=j+1
+            else:
+              lista_tipo.append(df_caja['TIPO_PRESTACION'][j])
+              m=0
+              while m<len(lista_tipo):
+                if lista_tipo[m] not in lista_tipo_duplicados:
+                  lista_tipo_duplicados.append(lista_tipo[m])
+                  m=m+1
+                else:
+                  m=m+1
+              w=0
+              while w<len(lista_tipo_duplicados):
+                if w==0:
+                  evento=lista_tipo_duplicados[w]
+                  w=w+1
+                else:
+                  if w==len(lista_tipo_duplicados)-1:
+                    evento=evento+', '+lista_tipo_duplicados[w]+'.'
+                    w=w+1
+                  else:
+                    evento=evento+', '+lista_tipo_duplicados[w]
+                    w=w+1
+              lista_evento.append(evento)
+              while i<j:
+                lista_evento.append('')
+                i=i+1
+              i=j+1
+              lista_tipo=[]
+              lista_tipo_duplicados=[]
+              break
+      else:
+        lista_evento.append(df_caja['TIPO_PRESTACION'][i])
+        i=i+1
+df_caja['MACRO_EVENTO']=lista_evento
+
+
+
+print('Ya se obtuvo el macro evento')
+
+
+
+#Obtención de columna del evento.
+lista_evento=[]
+lista_prestacion=[]
+lista_prestacion_duplicados=[]
+lista_tipo=[]
+lista_tipo_duplicados=[]
+evento=''
+i=0
+while i<len(df_caja):
+  #¿Qué pasa si el evento está asociado a un número de folio?
+  if df_caja['FOLIO'][i]!='nan':
+    if i==len(df_caja)-1:
+      #Caso excepcional.
+      lista_prestacion.append(df_caja['TIPO_PRESTACION'][i])
+      break
+    else:
+        if df_caja['FOLIO'][i]==df_caja['FOLIO'][i+1]:
+          lista_prestacion.append(df_caja['TIPO_PRESTACION'][i])
+          j=i+1
+          while j<len(df_caja):
+            if j==len(df_caja)-1:
+                #Hacer algo.
+                lista_prestacion.append(df_caja['TIPO_PRESTACION'][j])
+                break
+            else:
+                if df_caja['FOLIO'][j]==df_caja['FOLIO'][j+1]:
+                  lista_prestacion.append(df_caja['TIPO_PRESTACION'][j])
+                  j=j+1
+                else:
+                  lista_prestacion.append(df_caja['TIPO_PRESTACION'][j])
+                  m=0
+                  while m<len(lista_prestacion):
+                    if lista_prestacion[m] not in lista_prestacion_duplicados:
+                      lista_prestacion_duplicados.append(lista_prestacion[m])
+                      m=m+1
+                    else:
+                      m=m+1
+                  k=0
+                  while k<len(lista_prestacion_duplicados):
+                    if k==0:
+                      t=0
+                      while t<len([indice for indice, dato in enumerate(lista_prestacion) if dato==lista_prestacion_duplicados[k]]):
+                        if t==0:
+                          posicion_descripcion=[indice for indice, dato in enumerate(lista_prestacion) if dato==lista_prestacion_duplicados[k]][t]
+                          if lista_prestacion_duplicados[k]=='Consulta Médica' or lista_prestacion_duplicados[k]=='Derecho Pabellón' or lista_prestacion_duplicados[k]=='Farmacos Oncologicos' or lista_prestacion_duplicados[k]=='Quimioterapia':
+                            evento=lista_prestacion_duplicados[k]+': '+df_caja['DECRIPCION'][i+posicion_descripcion]
+                            t=t+1
+                          else:
+                            evento=lista_prestacion_duplicados[k]
+                            t=t+1
+                        else:
+                          if lista_prestacion_duplicados[k]=='Consulta Médica' or lista_prestacion_duplicados[k]=='Derecho Pabellón' or lista_prestacion_duplicados[k]=='Farmacos Oncologicos' or lista_prestacion_duplicados[k]=='Quimioterapia':
+                            posicion_descripcion=[indice for indice, dato in enumerate(lista_prestacion) if dato==lista_prestacion_duplicados[k]][t]
+                            evento=evento+', '+df_caja['DECRIPCION'][i+posicion_descripcion]
+                            t=t+1
+                          else:
+                            posicion_descripcion=[indice for indice, dato in enumerate(lista_prestacion) if dato==lista_prestacion_duplicados[k]][t]
+                            evento=evento
+                            t=t+1
+                      k=k+1
+                    else:
+                      if lista_prestacion_duplicados[k] in lista_prestacion:
+                        t=0
+                        while t<len([indice for indice, dato in enumerate(lista_prestacion) if dato==lista_prestacion_duplicados[k]]):
+                          if t==0:
+                            posicion_descripcion=[indice for indice, dato in enumerate(lista_prestacion) if dato==lista_prestacion_duplicados[k]][t]
+                            if lista_prestacion_duplicados[k]=='Consulta Médica' or lista_prestacion_duplicados[k]=='Derecho Pabellón' or lista_prestacion_duplicados[k]=='Farmacos Oncologicos' or lista_prestacion_duplicados[k]=='Quimioterapia':
+                              evento=evento+'. '+lista_prestacion_duplicados[k]+': '+df_caja['DECRIPCION'][i+posicion_descripcion]
+                              t=t+1
+                            else:
+                              evento=evento+'. '+lista_prestacion_duplicados[k]
+                              t=t+1
+                          else:
+                            posicion_descripcion=[indice for indice, dato in enumerate(lista_prestacion) if dato==lista_prestacion_duplicados[k]][t]
+                            if lista_prestacion_duplicados[k]=='Consulta Médica' or lista_prestacion_duplicados[k]=='Derecho Pabellón' or lista_prestacion_duplicados[k]=='Farmacos Oncologicos' or lista_prestacion_duplicados[k]=='Quimioterapia':
+                              evento=evento+', '+df_caja['DECRIPCION'][i+posicion_descripcion]
+                              t=t+1
+                            else:
+                              evento=evento
+                              t=t+1
+                        k=k+1
+                      else:
+                        k=k+1
+                  lista_evento.append(evento)
+                  while i<j:
+                    lista_evento.append('')
+                    i=i+1
+                  i=j+1
+                  lista_prestacion=[]
+                  lista_prestacion_duplicados=[]
+                  break
+        else:
+          lista_evento.append('')
+          i=i+1
+  #¿Qué pasa si no hay número de folio?
+  else:
+    if i==len(df_caja)-1:
+      if df_caja['TIPO_PRESTACION'][i]=='Consulta Médica' or df_caja['TIPO_PRESTACION'][i]=='Derecho Pabellón' or df_caja['TIPO_PRESTACION'][i]=='Farmacos Oncologicos' or df_caja['TIPO_PRESTACION'][i]=='Quimioterapia' or df_caja['TIPO_PRESTACION'][i]=='SIN CONCEPTO':
+        lista_evento.append(df_caja['TIPO_PRESTACION'][i]+': '+df_caja['DECRIPCION'][i])
+        break
+      else:
+        lista_evento.append(df_caja['TIPO_PRESTACION'][i])
+        break
+    else:
+      if df_caja['RUT_PACIENTE'][i]==df_caja['RUT_PACIENTE'][i+1] and df_caja['FECHA_ATENCION'][i]==df_caja['FECHA_ATENCION'][i+1] and df_caja['HORA'][i]==df_caja['HORA'][i+1]:
+        lista_tipo.append(df_caja['TIPO_PRESTACION'][i])
+        j=i+1
+        while j<len(df_caja):
+          if j==len(df_caja)-1:
+            lista_evento.append(df_caja['TIPO_PRESTACION'][i]+': '+df_caja['DECRIPCION'][i])
+            while i<j:
+              lista_evento.append('')
+              i=i+1
+            i=j+1
+            break
+          else:
+            if df_caja['RUT_PACIENTE'][j]==df_caja['RUT_PACIENTE'][j+1] and df_caja['FECHA_ATENCION'][j]==df_caja['FECHA_ATENCION'][j+1] and df_caja['HORA'][j]==df_caja['HORA'][j+1]:
+              lista_tipo.append(df_caja['TIPO_PRESTACION'][j])
+              j=j+1
+            else:
+              lista_tipo.append(df_caja['TIPO_PRESTACION'][j])
+              m=0
+              while m<len(lista_tipo):
+                if lista_tipo[m] not in lista_tipo_duplicados:
+                  lista_tipo_duplicados.append(lista_tipo[m])
+                  m=m+1
+                else:
+                  m=m+1
+              k=0
+              while k<len(lista_tipo_duplicados):
+                if k==0:
+                  t=0
+                  while t<len([indice for indice, dato in enumerate(lista_tipo) if dato==lista_tipo_duplicados[k]]):
+                    if t==0:
+                      posicion_descripcion=[indice for indice, dato in enumerate(lista_tipo) if dato==lista_tipo_duplicados[k]][t]
+                      if lista_tipo_duplicados[k]=='Consulta Médica' or lista_tipo_duplicados[k]=='Derecho Pabellón' or lista_tipo_duplicados[k]=='Farmacos Oncologicos' or lista_tipo_duplicados[k]=='Quimioterapia' or lista_tipo_duplicados[k]=='SIN CONCEPTO':
+                        evento=lista_tipo_duplicados[k]+': '+df_caja['DECRIPCION'][i+posicion_descripcion]
+                        t=t+1
+                      else:
+                        evento=lista_tipo_duplicados[k]
+                        t=t+1
+                    else:
+                      posicion_descripcion=[indice for indice, dato in enumerate(lista_tipo) if dato==lista_tipo_duplicados[k]][t]
+                      if lista_tipo_duplicados[k]=='Consulta Médica' or lista_tipo_duplicados[k]=='Derecho Pabellón' or lista_tipo_duplicados[k]=='Farmacos Oncologicos' or lista_tipo_duplicados[k]=='Quimioterapia' or lista_tipo_duplicados[k]=='SIN CONCEPTO':
+                        evento=evento+', '+df_caja['DECRIPCION'][i+posicion_descripcion]
+                        t=t+1
+                      else:
+                        evento=evento
+                        t=t+1
+                  k=k+1
+                else:
+                  t=0
+                  while t<len([indice for indice, dato in enumerate(lista_tipo) if dato==lista_tipo_duplicados[k]]):
+                    if t==0:
+                      posicion_descripcion=[indice for indice, dato in enumerate(lista_tipo) if dato==lista_tipo_duplicados[k]][t]
+                      if lista_tipo_duplicados[k]=='Consulta Médica' or lista_tipo_duplicados[k]=='Derecho Pabellón' or lista_tipo_duplicados[k]=='Farmacos Oncologicos' or lista_tipo_duplicados[k]=='Quimioterapia' or lista_tipo_duplicados[k]=='SIN CONCEPTO':
+                        evento=evento+'. '+lista_tipo_duplicados[k]+': '+df_caja['DECRIPCION'][i+posicion_descripcion]
+                        t=t+1
+                      else:
+                        evento=evento+'. '+lista_tipo_duplicados[k]
+                        t=t+1
+                    else:
+                      posicion_descripcion=[indice for indice, dato in enumerate(lista_tipo) if dato==lista_tipo_duplicados[k]][t]
+                      if lista_tipo_duplicados[k]=='Consulta Médica' or lista_tipo_duplicados[k]=='Derecho Pabellón' or lista_tipo_duplicados[k]=='Farmacos Oncologicos' or lista_tipo_duplicados[k]=='Quimioterapia' or lista_tipo_duplicados[k]=='SIN CONCEPTO':
+                        evento=evento+', '+df_caja['DECRIPCION'][i+posicion_descripcion]
+                        t=t+1
+                      else:
+                        evento=evento
+                        t=t+1
+                  k=k+1
+              lista_evento.append(evento)
+              while i<j:
+                lista_evento.append('')
+                i=i+1
+              i=j+1
+              lista_tipo=[]
+              lista_tipo_duplicados=[]
+              break
+      else:
+        if df_caja['TIPO_PRESTACION'][i]=='Consulta Médica' or df_caja['TIPO_PRESTACION'][i]=='Derecho Pabellón' or df_caja['TIPO_PRESTACION'][i]=='Farmacos Oncologicos' or df_caja['TIPO_PRESTACION'][i]=='Quimioterapia' or df_caja['TIPO_PRESTACION'][i]=='SIN CONCEPTO':
+          lista_evento.append(df_caja['TIPO_PRESTACION'][i]+': '+df_caja['DECRIPCION'][i])
+          i=i+1
+        else:
+          lista_evento.append(df_caja['TIPO_PRESTACION'][i])
+          i=i+1
+df_caja['EVENTO']=lista_evento
+
+
+print('Ya se obtuvo el evento')
+
+
+#Obtención de columna de detalle de prestaciones.
+lista_evento=[]
+lista_prestacion=[]
+lista_prestacion_duplicados=[]
+lista_tipo=[]
+lista_tipo_duplicados=[]
+evento=''
+i=0
+while i<len(df_caja):
+  #¿Qué pasa si el evento está asociado a un número de folio?
+  if df_caja['FOLIO'][i]!='nan':
+    if i==len(df_caja)-1:
+      #Caso excepcional.
+      lista_prestacion.append(df_caja['TIPO_PRESTACION'][i])
+      break
+    else:
+        if df_caja['FOLIO'][i]==df_caja['FOLIO'][i+1]:
+          lista_prestacion.append(df_caja['TIPO_PRESTACION'][i])
+          j=i+1
+          while j<len(df_caja):
+            if j==len(df_caja)-1:
+                #Hacer algo.
+                lista_prestacion.append(df_caja['TIPO_PRESTACION'][j])
+                break
+            else:
+                if df_caja['FOLIO'][j]==df_caja['FOLIO'][j+1]:
+                  lista_prestacion.append(df_caja['TIPO_PRESTACION'][j])
+                  j=j+1
+                else:
+                  lista_prestacion.append(df_caja['TIPO_PRESTACION'][j])
+                  m=0
+                  while m<len(lista_prestacion):
+                    if lista_prestacion[m] not in lista_prestacion_duplicados:
+                      lista_prestacion_duplicados.append(lista_prestacion[m])
+                      m=m+1
+                    else:
+                      m=m+1
+                  k=0
+                  while k<len(lista_prestacion_duplicados):
+                    if k==0:
+                      t=0
+                      while t<len([indice for indice, dato in enumerate(lista_prestacion) if dato==lista_prestacion_duplicados[k]]):
+                        if t==0:
+                          posicion_descripcion=[indice for indice, dato in enumerate(lista_prestacion) if dato==lista_prestacion_duplicados[k]][t]
+                          evento=lista_prestacion_duplicados[k]+': '+df_caja['DECRIPCION'][i+posicion_descripcion]
+                          t=t+1
+                        else:
+                          posicion_descripcion=[indice for indice, dato in enumerate(lista_prestacion) if dato==lista_prestacion_duplicados[k]][t]
+                          evento=evento+', '+df_caja['DECRIPCION'][i+posicion_descripcion]
+                          t=t+1
+                      k=k+1
+                    else:
+                      if lista_prestacion_duplicados[k] in lista_prestacion:
+                        t=0
+                        while t<len([indice for indice, dato in enumerate(lista_prestacion) if dato==lista_prestacion_duplicados[k]]):
+                          if t==0:
+                            posicion_descripcion=[indice for indice, dato in enumerate(lista_prestacion) if dato==lista_prestacion_duplicados[k]][t]
+                            evento=evento+'. '+lista_prestacion_duplicados[k]+': '+df_caja['DECRIPCION'][i+posicion_descripcion]
+                            t=t+1
+                          else:
+                            posicion_descripcion=[indice for indice, dato in enumerate(lista_prestacion) if dato==lista_prestacion_duplicados[k]][t]
+                            evento=evento+', '+df_caja['DECRIPCION'][i+posicion_descripcion]
+                            t=t+1
+                        k=k+1
+                      else:
+                        k=k+1
+                  lista_evento.append(evento)
+                  while i<j:
+                    lista_evento.append('')
+                    i=i+1
+                  i=j+1
+                  lista_prestacion=[]
+                  lista_prestacion_duplicados=[]
+                  break
+        else:
+          lista_evento.append('')
+          i=i+1
+  #¿Qué pasa si no hay número de folio?
+  else:
+    if i==len(df_caja)-1:
+      lista_evento.append(df_caja['TIPO_PRESTACION'][i]+': '+df_caja['DECRIPCION'][i])
+      break
+    else:
+      if df_caja['RUT_PACIENTE'][i]==df_caja['RUT_PACIENTE'][i+1] and df_caja['FECHA_ATENCION'][i]==df_caja['FECHA_ATENCION'][i+1] and df_caja['HORA'][i]==df_caja['HORA'][i+1]:
+        lista_tipo.append(df_caja['TIPO_PRESTACION'][i])
+        j=i+1
+        while j<len(df_caja):
+          if j==len(df_caja)-1:
+            lista_evento.append(df_caja['TIPO_PRESTACION'][i]+': '+df_caja['DECRIPCION'][i])
+            while i<j:
+              lista_evento.append('')
+              i=i+1
+            i=j+1
+            break
+          else:
+            if df_caja['RUT_PACIENTE'][j]==df_caja['RUT_PACIENTE'][j+1] and df_caja['FECHA_ATENCION'][j]==df_caja['FECHA_ATENCION'][j+1] and df_caja['HORA'][j]==df_caja['HORA'][j+1]:
+              lista_tipo.append(df_caja['TIPO_PRESTACION'][j])
+              j=j+1
+            else:
+              lista_tipo.append(df_caja['TIPO_PRESTACION'][j])
+              m=0
+              while m<len(lista_tipo):
+                if lista_tipo[m] not in lista_tipo_duplicados:
+                  lista_tipo_duplicados.append(lista_tipo[m])
+                  m=m+1
+                else:
+                  m=m+1
+              k=0
+              while k<len(lista_tipo_duplicados):
+                if k==0:
+                  t=0
+                  while t<len([indice for indice, dato in enumerate(lista_tipo) if dato==lista_tipo_duplicados[k]]):
+                    if t==0:
+                      posicion_descripcion=[indice for indice, dato in enumerate(lista_tipo) if dato==lista_tipo_duplicados[k]][t]
+                      evento=lista_tipo_duplicados[k]+': '+df_caja['DECRIPCION'][i+posicion_descripcion]
+                      t=t+1
+                    else:
+                      posicion_descripcion=[indice for indice, dato in enumerate(lista_tipo) if dato==lista_tipo_duplicados[k]][t]
+                      evento=evento+', '+df_caja['DECRIPCION'][i+posicion_descripcion]
+                      t=t+1
+                  k=k+1
+                else:
+                  t=0
+                  while t<len([indice for indice, dato in enumerate(lista_tipo) if dato==lista_tipo_duplicados[k]]):
+                    if t==0:
+                      posicion_descripcion=[indice for indice, dato in enumerate(lista_tipo) if dato==lista_tipo_duplicados[k]][t]
+                      evento=evento+'. '+lista_tipo_duplicados[k]+': '+df_caja['DECRIPCION'][i+posicion_descripcion]
+                      t=t+1
+                    else:
+                      posicion_descripcion=[indice for indice, dato in enumerate(lista_tipo) if dato==lista_tipo_duplicados[k]][t]
+                      evento=evento+', '+df_caja['DECRIPCION'][i+posicion_descripcion]
+                      t=t+1
+                  k=k+1
+              lista_evento.append(evento)
+              while i<j:
+                lista_evento.append('')
+                i=i+1
+              i=j+1
+              lista_tipo=[]
+              lista_tipo_duplicados=[]
+              break
+      else:
+        lista_evento.append(df_caja['TIPO_PRESTACION'][i]+': '+df_caja['DECRIPCION'][i])
+        i=i+1
+df_caja['DETALLE_PRESTACIONES']=lista_evento
+
+print('Ya se obtuvo el detalle de las prestaciones')
+
+
+#Cálculo del valor neto.
+lista_neto=[]
+lista_neto_final=[]
+i=0
+while i<len(df_caja):
+  if i==len(df_caja)-1:
+    lista_neto.append(df_caja['NETO'][i])
+    k=0
+    while k<len(lista_neto):
+      if k==0:
+        neto=lista_neto[k]
+        k=k+1
+      else:
+        neto=neto+lista_neto[k]
+        k=k+1
+    lista_neto_final.append(neto)
+    lista_neto=[]
+    break
+  else:
+    if df_caja['RUT_PACIENTE'][i]==df_caja['RUT_PACIENTE'][i+1] and df_caja['FECHA_ATENCION'][i]==df_caja['FECHA_ATENCION'][i+1] and df_caja['HORA'][i]==df_caja['HORA'][i+1]:
+      lista_neto.append(df_caja['NETO'][i])
+      j=i+1
+      while j<len(df_caja):
+        if j==len(df_caja)-1:
+          lista_neto.append(df_caja['NETO'][j])
+          k=0
+          while k<len(lista_neto):
+            if k==0:
+              neto=lista_neto[k]
+              k=k+1
+            else:
+              neto=neto+lista_neto[k]
+              k=k+1
+          lista_neto_final.append(neto)
+          while i<j:
+            lista_neto_final.append('')
+            i=i+1
+          i=j+1
+          lista_neto=[]
+          break
+        else:
+          if df_caja['RUT_PACIENTE'][j]==df_caja['RUT_PACIENTE'][j+1] and df_caja['FECHA_ATENCION'][j]==df_caja['FECHA_ATENCION'][j+1] and df_caja['HORA'][j]==df_caja['HORA'][j+1]:
+            lista_neto.append(df_caja['NETO'][j])
+            j=j+1
+          else:
+            lista_neto.append(df_caja['NETO'][j])
+            k=0
+            while k<len(lista_neto):
+              if k==0:
+                neto=lista_neto[k]
+                k=k+1
+              else:
+                neto=neto+lista_neto[k]
+                k=k+1
+            lista_neto_final.append(neto)
+            while i<j:
+              lista_neto_final.append('')
+              i=i+1
+            i=j+1
+            lista_neto=[]
+            break
+    else:
+      lista_neto_final.append(df_caja['NETO'][i])
+      i=i+1
+df_caja['NETO_FINAL']=lista_neto_final
+
+
+print('Ya se calculó el neto')
+
+
+#Cálculo del IVA.
+lista_iva=[]
+lista_iva_final=[]
+i=0
+while i<len(df_caja):
+  if i==len(df_caja)-1:
+    lista_iva.append(df_caja['IVA'][i])
+    k=0
+    while k<len(lista_iva):
+      if k==0:
+        iva=lista_iva[k]
+        k=k+1
+      else:
+        iva=iva+lista_iva[k]
+        k=k+1
+    lista_iva_final.append(iva)
+    lista_iva=[]
+    break
+  else:
+    if df_caja['RUT_PACIENTE'][i]==df_caja['RUT_PACIENTE'][i+1] and df_caja['FECHA_ATENCION'][i]==df_caja['FECHA_ATENCION'][i+1] and df_caja['HORA'][i]==df_caja['HORA'][i+1]:
+      lista_iva.append(df_caja['IVA'][i])
+      j=i+1
+      while j<len(df_caja):
+        if j==len(df_caja)-1:
+          lista_iva.append(df_caja['IVA'][j])
+          k=0
+          while k<len(lista_iva):
+            if k==0:
+              iva=lista_iva[k]
+              k=k+1
+            else:
+              iva=iva+lista_iva[k]
+              k=k+1
+          lista_iva_final.append(iva)
+          while i<j:
+            lista_iva_final.append('')
+            i=i+1
+          i=j+1
+          lista_iva=[]
+          break
+        else:
+          if df_caja['RUT_PACIENTE'][j]==df_caja['RUT_PACIENTE'][j+1] and df_caja['FECHA_ATENCION'][j]==df_caja['FECHA_ATENCION'][j+1] and df_caja['HORA'][j]==df_caja['HORA'][j+1]:
+            lista_iva.append(df_caja['IVA'][j])
+            j=j+1
+          else:
+            lista_iva.append(df_caja['IVA'][j])
+            k=0
+            while k<len(lista_iva):
+              if k==0:
+                iva=lista_iva[k]
+                k=k+1
+              else:
+                iva=iva+lista_iva[k]
+                k=k+1
+            lista_iva_final.append(iva)
+            while i<j:
+              lista_iva_final.append('')
+              i=i+1
+            i=j+1
+            lista_iva=[]
+            break
+    else:
+      lista_iva_final.append(df_caja['IVA'][i])
+      i=i+1
+df_caja['IVA_FINAL']=lista_iva_final
+
+
+print('Ya se calculó el IVA')
+
+
+#Eliminar filas con eventos vacíos.
+df_caja=df_caja.drop(df_caja[df_caja['MACRO_EVENTO']==''].index)
+#Reseteo de índices.
+df_caja.index=range(df_caja.shape[0])
+#Renombramiento de columnas.
+df_caja=df_caja[['RUT_PACIENTE','PACIENTE','EDAD','SEXO','FOLIO','FECHA_ATENCION',
+                 'HORA','MACRO_EVENTO','EVENTO','DETALLE_PRESTACIONES','NETO_FINAL',
+                 'IVA_FINAL','PREVISION','CONVENIO','REGION','CIUDAD','COMUNA']]
+
+df_caja.columns=['RUT','NOMBRE','EDAD','SEXO','FOLIO','FECHA_EVENTO','HORA',
+                 'MACRO_EVENTO','EVENTO','DETALLE_PRESTACIONES','NETO','IVA',
+                 'PREVISION','CONVENIO','REGION','CIUDAD','COMUNA']
+#Agregar columnas FECHA_NACIMIENTO, DIAGNOSTICO y C_ONCOLOGICO.
+fecha_nacimiento=[]
+diagnostico=[]
+c_oncologico=[]
+i=0
+while i<len(df_caja):
+    fecha_nacimiento.append('')
+    diagnostico.append('')
+    c_oncologico.append('')
+    i=i+1
+df_caja['FECHA_NACIMIENTO']=diagnostico
+df_caja['DIAGNOSTICO']=diagnostico
+df_caja['C_ONCOLOGICO']=diagnostico
+df_caja=df_caja[['RUT','NOMBRE','FECHA_NACIMIENTO','EDAD','SEXO','FOLIO','FECHA_EVENTO','HORA',
+                 'DIAGNOSTICO','MACRO_EVENTO','EVENTO','DETALLE_PRESTACIONES',
+                 'NETO','IVA','C_ONCOLOGICO','PREVISION','CONVENIO','REGION','CIUDAD','COMUNA']]
+
+#Cambiar formato de detalle de prestaciones.
+nuevo_detalle=[]
+i=0
+while i<len(df_caja):
+    nuevo_detalle.append('Detalle de prestaciones:\n\n'+df_caja['DETALLE_PRESTACIONES'][i]+'.\n\nCosto del evento: '+(str(df_caja['NETO'][i]))[:-2])
+    i=i+1
+df_caja['DETALLE_PRESTACIONES']=nuevo_detalle
+
+
+print('Hora de término: '+str(datetime.now())[11:19]+' hrs.')
+
+ruta_exportacion='C:/Users/edgar/Downloads/EVENTOS_2/df_caja_eventos_2.csv'
+df_caja.to_csv(path_or_buf=ruta_exportacion)
