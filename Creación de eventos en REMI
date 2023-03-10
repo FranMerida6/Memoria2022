@@ -1,0 +1,281 @@
+print('Comienzo de REMI')
+#REMI.
+import pyodbc
+import cx_Oracle
+import pandas as pd
+
+
+#Importar base de datos.
+ruta_importacion='C:/Users/edgar/Downloads/RESPALDO/df_global_respaldo.csv'
+df_global=pd.read_csv(ruta_importacion)
+
+
+
+#Cambiar la columna ID_PACIENTE a string.
+rut=[]
+i=0
+while i<len(df_global):
+    rut.append(str(df_global['ID_PACIENTE'][i]))
+    i=i+1
+df_global['ID_PACIENTE']=rut
+#Cambio de formato de RUT.
+modificado=[]
+i=0
+while i<len(df_global):
+    if '-' in df_global['ID_PACIENTE'][i]:
+        modificado.append(df_global['ID_PACIENTE'][i].replace('.','')[:-2])
+        i=i+1
+    else:
+        modificado.append(df_global['ID_PACIENTE'][i])
+        i=i+1
+df_global['ID_PACIENTE']=modificado
+#Primero quiero ver cuántos valores son números.
+lista_indices=[]
+i=0
+while i<len(df_global):
+    if df_global['ID_PACIENTE'][i].isdigit()==False:
+        lista_indices.append(i)
+        i=i+1
+    else:
+        i=i+1
+#Ahora quiero eliminar esas filas.
+df_global=df_global.drop(lista_indices,axis=0,index=None,columns=None,level=None,inplace=False,errors='raise')
+#Hay que resetear los índices.
+df_global.index=range(df_global.shape[0])
+#Cambiar la columna ID_PACIENTE a int.
+rut_int=[]
+i=0
+while i<len(df_global):
+    rut_int.append(int(df_global['ID_PACIENTE'][i]))
+    i=i+1
+df_global['ID_PACIENTE']=rut_int
+
+
+
+
+
+
+
+
+
+
+
+
+#Cambiar la columna FECHA_FIRMA a string.
+fecha=[]
+i=0
+while i<len(df_global):
+  fecha.append(str(df_global['FECHA_FIRMA'][i]))
+  i=i+1
+df_global['FECHA_FIRMA']=fecha
+#Acortar la fecha y agregar columna de horas.
+lista_fechas=[]
+lista_horas=[]
+i=0
+while i<len(df_global):
+  lista_fechas.append(df_global['FECHA_FIRMA'][i][0:10])
+  lista_horas.append(df_global['FECHA_FIRMA'][i][11:19])
+  i=i+1
+df_global['FECHA_FIRMA']=lista_fechas
+df_global['HORA_FIRMA']=lista_horas
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#Cambiar la columna NOMBRE_PACIENTE a string.
+nombre=[]
+i=0
+while i<len(df_global):
+  nombre.append(str(df_global['NOMBRE_PACIENTE'][i]))
+  i=i+1
+df_global['NOMBRE_PACIENTE']=nombre
+#Cambiar la columna TIPO a string.
+tipo=[]
+i=0
+while i<len(df_global):
+  tipo.append(str(df_global['TIPO'][i]))
+  i=i+1
+df_global['TIPO']=tipo
+#Cambiar la columna PROCEDIMIENTO_PRINCIPAL a string.
+procedimiento=[]
+i=0
+while i<len(df_global):
+  procedimiento.append(str(df_global['PROCEDIMIENTO_PRINCIPAL'][i]))
+  i=i+1
+df_global['PROCEDIMIENTO_PRINCIPAL']=procedimiento
+
+
+
+
+#Rescate de columnas que nos importan.
+df_global=df_global[['ID_PACIENTE','NOMBRE_PACIENTE',
+                     'FECHA_FIRMA','HORA_FIRMA','TIPO',
+                     'PROCEDIMIENTO_PRINCIPAL']]
+#Ahora hay que ordenar la data.
+df_global=df_global.sort_values(['ID_PACIENTE',
+                                 'FECHA_FIRMA','HORA_FIRMA',
+                                 'TIPO','PROCEDIMIENTO_PRINCIPAL'],
+                                ascending=True,ignore_index=True)
+
+
+
+
+#Obtención del macro evento.
+lista_evento=[]
+i=0
+while i<len(df_global):
+  if i==len(df_global)-1:
+    lista_evento.append('Plan '+df_global['TIPO'][i])
+    break
+  else:
+    if df_global['ID_PACIENTE'][i]==df_global['ID_PACIENTE'][i+1] and df_global['FECHA_FIRMA'][i]==df_global['FECHA_FIRMA'][i+1] and df_global['HORA_FIRMA'][i]==df_global['HORA_FIRMA'][i+1]:
+      lista_evento.append('Plan '+df_global['TIPO'][i])
+      j=i+1
+      while j<len(df_global):
+        if j==len(df_global)-1:
+          while i<j:
+            lista_evento.append('')
+            i=i+1
+          i=j+1
+          break
+        else:
+          if df_global['ID_PACIENTE'][j]==df_global['ID_PACIENTE'][j+1] and df_global['FECHA_FIRMA'][j]==df_global['FECHA_FIRMA'][j+1] and df_global['HORA_FIRMA'][j]==df_global['HORA_FIRMA'][j+1]:
+            j=j+1
+          else:
+            while i<j:
+              lista_evento.append('')
+              i=i+1
+            i=j+1
+            break
+    else:
+      lista_evento.append('Plan '+df_global['TIPO'][i])
+      i=i+1
+df_global['MACRO_EVENTO']=lista_evento
+
+
+
+
+#Obtención de detalle de prestaciones.
+lista_evento=[]
+i=0
+while i<len(df_global):
+  if i==len(df_global)-1:
+    lista_evento.append('Procedimiento principal: '+df_global['PROCEDIMIENTO_PRINCIPAL'][i])
+    break
+  else:
+    if df_global['ID_PACIENTE'][i]==df_global['ID_PACIENTE'][i+1] and df_global['FECHA_FIRMA'][i]==df_global['FECHA_FIRMA'][i+1] and df_global['HORA_FIRMA'][i]==df_global['HORA_FIRMA'][i+1]:
+      lista_evento.append('Procedimiento principal: '+df_global['PROCEDIMIENTO_PRINCIPAL'][i])
+      j=i+1
+      while j<len(df_global):
+        if j==len(df_global)-1:
+          while i<j:
+            lista_evento.append('')
+            i=i+1
+          i=j+1
+          break
+        else:
+          if df_global['ID_PACIENTE'][j]==df_global['ID_PACIENTE'][j+1] and df_global['FECHA_FIRMA'][j]==df_global['FECHA_FIRMA'][j+1] and df_global['HORA_FIRMA'][j]==df_global['HORA_FIRMA'][j+1]:
+            j=j+1
+          else:
+            while i<j:
+              lista_evento.append('')
+              i=i+1
+            i=j+1
+            break
+    else:
+      lista_evento.append('Procedimiento principal: '+df_global['PROCEDIMIENTO_PRINCIPAL'][i])
+      i=i+1
+df_global['DETALLE_PRESTACIONES']=lista_evento
+#Rescate de columnas que nos importan.
+df_global=df_global[['ID_PACIENTE','NOMBRE_PACIENTE',
+                     'FECHA_FIRMA','HORA_FIRMA','MACRO_EVENTO',
+                     'DETALLE_PRESTACIONES','TIPO',
+                     'PROCEDIMIENTO_PRINCIPAL']]
+
+
+#Eliminar filas innecesarias.
+df_global=df_global.drop(df_global[df_global['MACRO_EVENTO']==''].index)
+df_global.index=range(df_global.shape[0])
+
+
+
+#Agregar columnas FECHA_NACIMIENTO, EDAD, SEXO, FOLIO, EVENTO, NETO, IVA,
+#C_ONCOLOGICO, PREVISION, CONVENIO, REGION, CIUDAD, COMUNA.
+lista_fecha_nacimiento=[]
+lista_edad=[]
+lista_sexo=[]
+lista_folio=[]
+lista_diagnostico=[]
+lista_evento=[]
+lista_neto=[]
+lista_iva=[]
+lista_oncologico=[]
+lista_prevision=[]
+lista_convenio=[]
+lista_region=[]
+lista_ciudad=[]
+lista_comuna=[]
+i=0
+while i<len(df_global):
+    lista_fecha_nacimiento.append('')
+    lista_edad.append(0)  
+    lista_sexo.append('')
+    lista_folio.append(0)
+    lista_diagnostico.append('')
+    lista_evento.append('')
+    lista_neto.append(0)
+    lista_iva.append(0)
+    lista_oncologico.append('')
+    lista_prevision.append('')
+    lista_convenio.append('')
+    lista_region.append('')
+    lista_ciudad.append('')
+    lista_comuna.append('')
+    i=i+1
+df_global['FECHA_NACIMIENTO']=lista_fecha_nacimiento
+df_global['EDAD']=lista_edad
+df_global['SEXO']=lista_sexo
+df_global['FOLIO']=lista_folio
+df_global['DIAGNOSTICO']=lista_diagnostico
+df_global['EVENTO']=lista_evento
+df_global['NETO']=lista_neto
+df_global['IVA']=lista_iva
+df_global['C_ONCOLOGICO']=lista_oncologico
+df_global['PREVISION']=lista_prevision
+df_global['CONVENIO']=lista_convenio
+df_global['REGION']=lista_region
+df_global['CIUDAD']=lista_ciudad
+df_global['COMUNA']=lista_comuna
+
+
+df_global=df_global[['ID_PACIENTE','NOMBRE_PACIENTE','FECHA_NACIMIENTO',
+                     'EDAD','SEXO','FOLIO','FECHA_FIRMA','HORA_FIRMA',
+                     'DIAGNOSTICO','MACRO_EVENTO','EVENTO','DETALLE_PRESTACIONES',
+                     'NETO','IVA','C_ONCOLOGICO','PREVISION','CONVENIO','REGION',
+                     'CIUDAD','COMUNA']]
+
+df_global.columns=['RUT','NOMBRE','FECHA_NACIMIENTO','EDAD','SEXO','FOLIO',
+                 'FECHA_EVENTO','HORA',
+                 'DIAGNOSTICO','MACRO_EVENTO','EVENTO','DETALLE_PRESTACIONES',
+                 'NETO','IVA','C_ONCOLOGICO','PREVISION','CONVENIO','REGION',
+                 'CIUDAD','COMUNA']
+
+
+df_global=df_global.sort_values(['RUT',
+                                 'FECHA_EVENTO','HORA'],
+                                ascending=True,ignore_index=True)
+
+
+ruta_exportacion='C:/Users/edgar/Downloads/EVENTOS/df_global_eventos.csv'
+df_global.to_csv(path_or_buf=ruta_exportacion)
