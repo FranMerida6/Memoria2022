@@ -1,0 +1,114 @@
+import pandas as pd
+ruta_importacion='C:/Users/edgar/Downloads/EVENTOS_2/df_unificacion_8.csv'
+df_unificacion_2=pd.read_csv(filepath_or_buffer=ruta_importacion)
+df_unificacion_2=df_unificacion_2.drop(['Unnamed: 0'],axis=1)
+
+
+#Esta sección es solo para saber cuántos pacientes comparten la misma
+#patología.
+
+
+#Cambiar la columna RUT a int.
+rut_int=[]
+i=0
+while i<len(df_unificacion_2):
+    rut_int.append(int(df_unificacion_2['RUT'][i]))
+    i=i+1
+df_unificacion_2['RUT']=rut_int
+
+#Quiero conocer todos los nombres de las columnas.
+df_unificacion_2.columns
+
+
+#Quiero conocer todos los posibles duplicados que están contenidos en la
+#columna PATOLOGIA_2.
+duplicados=[]
+palabra='PATOLOGIA_2'
+i=0
+while i<len(df_unificacion_2):
+    if df_unificacion_2[palabra][i] not in duplicados:
+        duplicados.append(df_unificacion_2[palabra][i])
+        i=i+1
+    else:
+        i=i+1
+
+duplicados
+
+
+#Yo necesito una sentencia que me permita eliminar filas que cumplen cierto
+#requisito.
+df_unificacion_2=df_unificacion_2.drop(df_unificacion_2[df_unificacion_2['PATOLOGIA_2']=='SIN INFORMACIÓN'].index)
+#Reseteo de índices.
+df_unificacion_2.index=range(df_unificacion_2.shape[0])
+
+
+#Quiero conocer todos los posibles duplicados que están contenidos en la
+#columna RUT.
+duplicados_1=[]
+palabra='RUT'
+i=0
+while i<len(df_unificacion_2):
+    if df_unificacion_2[palabra][i] not in duplicados_1:
+        duplicados_1.append(df_unificacion_2[palabra][i])
+        i=i+1
+    else:
+        i=i+1
+
+#Por mientras supondré que me dará 25,787 RUTs distintos.
+
+#Ahora, quiero conocer todos los posibles duplicados de la columna C_ONCOLOGICO
+#y así eliminar todas las filas que contengan 'SIN CONVENIO'.
+
+duplicados_2=[]
+palabra='C_ONCOLOGICO'
+i=0
+while i<len(df_unificacion_2):
+    if df_unificacion_2[palabra][i] not in duplicados_2:
+        duplicados_2.append(df_unificacion_2[palabra][i])
+        i=i+1
+    else:
+        i=i+1
+
+duplicados_2
+
+#La columna C_ONCOLOGICO tiene como duplicados 'SIN CONVENIO', 'CON CONVENIO' y
+#'SIN INFORMACIÓN'.
+
+#Ahora quiero eliminar todas aquellas filas que tengan por información en la
+#columna C_ONCOLOGICO 'SIN INFORMACIÓN' y 'SIN CONVENIO'
+df_unificacion_2=df_unificacion_2.drop(df_unificacion_2[df_unificacion_2['C_ONCOLOGICO']=='SIN INFORMACIÓN'].index)
+df_unificacion_2.index=range(df_unificacion_2.shape[0])
+
+df_unificacion_2=df_unificacion_2.drop(df_unificacion_2[df_unificacion_2['C_ONCOLOGICO']=='SIN CONVENIO'].index)
+df_unificacion_2.index=range(df_unificacion_2.shape[0])
+
+
+#Ahora quiero conocer la cantidad de pacientes total que están asociados al
+#convenio y que de los cuales se tiene información respecto a la patología
+#padecida.
+
+
+duplicados_3=[]
+palabra='RUT'
+i=0
+while i<len(df_unificacion_2):
+    if df_unificacion_2[palabra][i] not in duplicados_3:
+        duplicados_3.append(df_unificacion_2[palabra][i])
+        i=i+1
+    else:
+        i=i+1
+
+duplicados_3
+len(duplicados_3)
+
+#Python me dice que hay 8,970 pacientes que tienen una patología asociada.
+
+
+
+
+
+
+
+
+
+
