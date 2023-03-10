@@ -1,0 +1,323 @@
+print('Comienzo de comité')
+#COMITÉ.
+import pyodbc
+import cx_Oracle
+import pandas as pd
+#Importar información de localización.
+ruta='C:/Users/edgar/Downloads/Salidas de códigos para cuantificación en formato XLSX/TABLA RUT_DIAG_DEFUNCION.xlsx'
+df_localizacion=pd.read_excel(io=ruta,sheet_name='CLASIFICACIÓN')
+#Cambiar la columna DIAGNÓSTICO a string.
+diag1=[]
+i=0
+while i<len(df_localizacion):
+    diag1.append(str(df_localizacion['DIAGNÓSTICO'][i]))
+    i=i+1
+df_localizacion['DIAGNÓSTICO']=diag1
+#Cambiar la columna CIE10 a string.
+codigo=[]
+i=0
+while i<len(df_localizacion):
+    codigo.append(str(df_localizacion['CIE10'][i]))
+    i=i+1
+df_localizacion['CIE10']=codigo
+#Cambiar la columna LOCALIZACION a string.
+loc=[]
+i=0
+while i<len(df_localizacion):
+    loc.append(str(df_localizacion['LOCALIZACIÓN'][i]))
+    i=i+1
+df_localizacion['LOCALIZACIÓN']=loc
+#Cambiar el nombre SIN CLASIFICAR por nada.
+nueva_localizacion=[]
+i=0
+while i<len(df_localizacion):
+    if df_localizacion['LOCALIZACIÓN'][i]=='SIN CLASIFICAR':
+        nueva_localizacion.append('')
+        i=i+1
+    else:
+        nueva_localizacion.append(df_localizacion['LOCALIZACIÓN'][i])
+        i=i+1
+df_localizacion['LOCALIZACIÓN']=nueva_localizacion
+
+
+
+#Importar base de datos.
+ruta_importacion='C:/Users/edgar/Downloads/RESPALDO/df_comite_respaldo.csv'
+df_comite=pd.read_csv(ruta_importacion)
+
+
+
+
+lista_inicial=['PACIENTE','TIPO','DIAGNOSTICO','CODIGO','TIPO_PLAN_PROPUESTO','PLAN_PROPUESTO','PLAN_RESUELTO','OTRO_TRATAMIENTO']
+j=0
+while j<len(lista_inicial):
+    print(lista_inicial[j])
+    #Cambiar las columnas de texto a string.
+    lista=[]
+    i=0
+    while i<len(df_comite):
+        lista.append(str(df_comite[lista_inicial[j]][i]))
+        i=i+1
+    df_comite[lista_inicial[j]]=lista
+    #Eliminar los espacios innecesarios.
+    nueva_lista=[]
+    i=0
+    while i<len(df_comite):
+        cadena=df_comite[lista_inicial[j]][i]
+        cadena_limpia=cadena.strip()
+        nueva_lista.append(cadena_limpia)
+        i=i+1
+    df_comite[lista_inicial[j]]=nueva_lista
+    #Cambiar por vacío los registros "None".
+    lista_nada=[]
+    i=0
+    while i<len(df_comite):
+        if df_comite[lista_inicial[j]][i]=='None':
+            lista_nada.append('')
+            i=i+1
+        else:
+            lista_nada.append(df_comite[lista_inicial[j]][i])
+            i=i+1
+    df_comite[lista_inicial[j]]=lista_nada
+    j=j+1
+
+
+
+print('Ahora se modifica la columna RUT')
+
+#Cambiar la columna NUMERO_DOCUMENTO a string.
+rut=[]
+i=0
+while i<len(df_comite):
+    rut.append(str(df_comite['NUMERO_DOCUMENTO'][i]))
+    i=i+1
+df_comite['NUMERO_DOCUMENTO']=rut
+#Cambio de formato de RUT.
+modificado=[]
+i=0
+while i<len(df_comite):
+  if '-' in df_comite['NUMERO_DOCUMENTO'][i]:
+    modificado.append(df_comite['NUMERO_DOCUMENTO'][i].replace('.','')[:-2])
+    i=i+1
+  else:
+    modificado.append(df_comite['NUMERO_DOCUMENTO'][i])
+    i=i+1
+df_comite['NUMERO_DOCUMENTO']=modificado
+#Eliminar RUTs que tienen letras.
+lista_indices=[]
+i=0
+while i<len(df_comite):
+    if df_comite['NUMERO_DOCUMENTO'][i].isdigit()==False:
+        lista_indices.append(i)
+        i=i+1
+    else:
+        i=i+1
+df_comite=df_comite.drop(lista_indices,axis=0,index=None,columns=None,level=None,inplace=False,errors='raise')
+#Hay que resetear los índices.
+df_comite.index=range(df_comite.shape[0])
+#Volver a cambiar el formato del RUT, esta vez a int.
+rut_int=[]
+i=0
+while i<len(df_comite):
+    rut_int.append(int(df_comite['NUMERO_DOCUMENTO'][i]))
+    i=i+1
+df_comite['NUMERO_DOCUMENTO']=rut_int
+
+
+
+
+#Cambiar la columna FH_FIRMA a string.
+fecha=[]
+i=0
+while i<len(df_comite):
+  fecha.append(str(df_comite['FH_FIRMA'][i]))
+  i=i+1
+df_comite['FH_FIRMA']=fecha
+#Acortar la fecha y agregar columna de horas.
+lista_fechas=[]
+lista_horas=[]
+i=0
+while i<len(df_comite):
+    lista_fechas.append(df_comite['FH_FIRMA'][i][0:10])
+    lista_horas.append(df_comite['FH_FIRMA'][i][11:19])
+    i=i+1
+df_comite['FECHA_FIRMA']=lista_fechas
+df_comite['HORA_FIRMA']=lista_horas
+
+
+
+#Asociar código de diagnóstico con localización.
+lista_codigo=[]
+i=0
+while i<len(df_comite):
+    if df_comite['CODIGO'][i] in df_localizacion['CIE10'].tolist():
+        lista_codigo.append(df_localizacion['LOCALIZACIÓN'][df_localizacion['CIE10'].tolist().index(df_comite['CODIGO'][i])])
+        i=i+1
+    else:
+        lista_codigo.append('')
+        i=i+1
+len(lista_codigo)
+df_comite['LOCALIZACION']=lista_codigo
+
+
+
+#Reordenamiento de columnas.
+df_comite=df_comite[['NUMERO_DOCUMENTO','PACIENTE','FECHA_FIRMA',
+                     'HORA_FIRMA',
+                     'DIAGNOSTICO','CODIGO','LOCALIZACION','TIPO',
+                     'TIPO_PLAN_PROPUESTO','PLAN_PROPUESTO',
+                     'PLAN_RESUELTO','OTRO_TRATAMIENTO']]
+
+#Ahora hay que ordenar la data.
+df_comite=df_comite.sort_values(['NUMERO_DOCUMENTO','FECHA_FIRMA',
+                                 'HORA_FIRMA','DIAGNOSTICO'],
+                                ascending=True,ignore_index=True)
+
+
+print('Ahora se obtiene el macro evento')
+
+#Creación de columna de macro evento.
+lista_ev=[]
+i=0
+while i<len(df_comite):
+  if i==len(df_comite)-1:
+    lista_ev.append('Comité oncológico '+df_comite['LOCALIZACION'][i])
+    break
+  else:
+    if df_comite['NUMERO_DOCUMENTO'][i]==df_comite['NUMERO_DOCUMENTO'][i+1] and df_comite['FECHA_FIRMA'][i]==df_comite['FECHA_FIRMA'][i+1] and df_comite['HORA_FIRMA'][i]==df_comite['HORA_FIRMA'][i+1]:
+      lista_ev.append('Comité oncológico '+df_comite['LOCALIZACION'][i])
+      j=i+1
+      while j<len(df_comite):
+        if j==len(df_comite)-1:
+          while i<j:
+            lista_ev.append('')
+            i=i+1
+          i=j+1
+          break
+        else:
+          if df_comite['NUMERO_DOCUMENTO'][j]==df_comite['NUMERO_DOCUMENTO'][j+1] and df_comite['FECHA_FIRMA'][j]==df_comite['FECHA_FIRMA'][j+1] and df_comite['HORA_FIRMA'][j]==df_comite['HORA_FIRMA'][j+1]:
+            j=j+1
+          else:
+            while i<j:
+              lista_ev.append('')
+              i=i+1
+            i=j+1
+            break
+    else:
+      lista_ev.append('Comité oncológico '+df_comite['LOCALIZACION'][i])
+      i=i+1
+df_comite['MACRO_EVENTO']=lista_ev
+
+
+
+
+print('Ahora se crea el detalle de las prestaciones')
+
+#Creación de columna de DETALLE_PRESTACIONES.
+lista_evento=[]
+i=0
+while i<len(df_comite):
+  if i==len(df_comite)-1:
+    lista_evento.append('Descripción del diagnóstico: '+df_comite['DIAGNOSTICO'][i])
+    break
+  else:
+    if df_comite['NUMERO_DOCUMENTO'][i]==df_comite['NUMERO_DOCUMENTO'][i+1] and df_comite['FECHA_FIRMA'][i]==df_comite['FECHA_FIRMA'][i+1] and df_comite['HORA_FIRMA'][i]==df_comite['HORA_FIRMA'][i+1]:
+      lista_evento.append('Descripción del diagnóstico: '+df_comite['DIAGNOSTICO'][i])
+      j=i+1
+      while j<len(df_comite):
+        if j==len(df_comite)-1:
+          while i<j:
+            lista_evento.append('')
+            i=i+1
+          i=j+1
+          break
+        else:
+          if df_comite['NUMERO_DOCUMENTO'][j]==df_comite['NUMERO_DOCUMENTO'][j+1] and df_comite['FECHA_FIRMA'][j]==df_comite['FECHA_FIRMA'][j+1] and df_comite['HORA_FIRMA'][j]==df_comite['HORA_FIRMA'][j+1]:
+            j=j+1
+          else:
+            while i<j:
+              lista_evento.append('')
+              i=i+1
+            i=j+1
+            break
+    else:
+      lista_evento.append('Descripción del diagnóstico: '+df_comite['DIAGNOSTICO'][i])
+      i=i+1
+df_comite['DETALLE_PRESTACIONES']=lista_evento
+
+
+
+
+#Eliminar filas innecesarias.
+df_comite=df_comite.drop(df_comite[df_comite['MACRO_EVENTO']==''].index)
+df_comite.index=range(df_comite.shape[0])
+
+
+
+#Agregar columnas FECHA_NACIMIENTO, EDAD, SEXO, FOLIO, EVENTO, NETO, IVA,
+#C_ONCOLOGICO, PREVISION, CONVENIO, REGION, CIUDAD, COMUNA.
+lista_fecha_nacimiento=[]
+lista_edad=[]
+lista_sexo=[]
+lista_folio=[]
+lista_evento=[]
+lista_neto=[]
+lista_iva=[]
+lista_oncologico=[]
+lista_prevision=[]
+lista_convenio=[]
+lista_region=[]
+lista_ciudad=[]
+lista_comuna=[]
+i=0
+while i<len(df_comite):
+    lista_fecha_nacimiento.append('')
+    lista_edad.append(0)  
+    lista_sexo.append('')
+    lista_folio.append(0)
+    lista_evento.append('')
+    lista_neto.append(0)
+    lista_iva.append(0)
+    lista_oncologico.append('')
+    lista_prevision.append('')
+    lista_convenio.append('')
+    lista_region.append('')
+    lista_ciudad.append('')
+    lista_comuna.append('')
+    i=i+1
+df_comite['FECHA_NACIMIENTO']=lista_fecha_nacimiento
+df_comite['EDAD']=lista_edad
+df_comite['SEXO']=lista_sexo
+df_comite['FOLIO']=lista_folio
+df_comite['EVENTO']=lista_evento
+df_comite['NETO']=lista_neto
+df_comite['IVA']=lista_iva
+df_comite['C_ONCOLOGICO']=lista_oncologico
+df_comite['PREVISION']=lista_prevision
+df_comite['CONVENIO']=lista_convenio
+df_comite['REGION']=lista_region
+df_comite['CIUDAD']=lista_ciudad
+df_comite['COMUNA']=lista_comuna
+
+
+
+df_comite=df_comite[['NUMERO_DOCUMENTO','PACIENTE','FECHA_NACIMIENTO',
+                     'EDAD','SEXO','FOLIO','FECHA_FIRMA','HORA_FIRMA',
+                     'DIAGNOSTICO','MACRO_EVENTO','EVENTO','DETALLE_PRESTACIONES',
+                     'NETO','IVA','C_ONCOLOGICO','PREVISION','CONVENIO','REGION',
+                     'CIUDAD','COMUNA']]
+
+df_comite.columns=['RUT','NOMBRE','FECHA_NACIMIENTO','EDAD','SEXO','FOLIO',
+                 'FECHA_EVENTO','HORA',
+                 'DIAGNOSTICO','MACRO_EVENTO','EVENTO','DETALLE_PRESTACIONES',
+                 'NETO','IVA','C_ONCOLOGICO','PREVISION','CONVENIO','REGION',
+                 'CIUDAD','COMUNA']
+
+
+
+#Ahora hay que ordenar la data.
+df_comite=df_comite.sort_values(['RUT','FECHA_EVENTO','HORA'],ascending=True,ignore_index=True)
+
+
+ruta_exportacion='C:/Users/edgar/Downloads/EVENTOS/df_comite_eventos.csv'
+df_comite.to_csv(path_or_buf=ruta_exportacion)
