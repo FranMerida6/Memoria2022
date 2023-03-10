@@ -1,0 +1,42 @@
+print('Comienzo de SICI')
+#SICI.
+import pyodbc
+import cx_Oracle
+import pandas as pd
+conn_str=("Driver={ODBC Driver 17 for SQL Server};"
+            "Server=SRVSQLGESTION.FALP.ORG\SQLCLINICA;"
+            "Database=Gestion_Clin;"
+            "Trusted_Connection=yes;")
+conn3=pyodbc.connect(conn_str)
+df_quimio=pd.read_sql("""SELECT [ANNO]
+      ,[FECHA_CREACION]
+      ,[MEDICO]
+      ,[NUM_PLAN]
+      ,[ORAL]
+      ,[CODIGO_DIAG]
+      ,[CIE_DIAG]
+      ,[DESC_DIAG]
+      ,[ESQUEMA]
+      ,[CANTIDAD_DE_CICLOS]
+      ,[CICLOS_REALIZADOS]
+      ,[FICHA]
+      ,[TIPO_DOC]
+      ,[NUM_DOC_IDENTIFICA]
+      ,[NOMBRE_PAC]
+      ,[CONTINUIDAD]
+      ,[ESTADO]
+      ,[SE_REALIZO]
+      ,[PREVISION_PRESUPUESTADA]
+      ,[PREVISION_ACTUAL]
+      ,[PLAN_PRESUPUESTADA]
+      ,[PLAN_ACTUAL]
+      ,[CONV_ONC]
+      ,[EDAD]
+      ,[HOSPITALIZADO]
+      ,[ETAPA]
+  FROM [Gestion_Clin].[FALP].[CLIN_TAB_PLANES_CREADO_QT]
+  where FECHA_CREACION BETWEEN '01-01-2018' and '31-10-2022'""",conn3)
+
+
+ruta='C:/Users/edgar/Downloads/RESPALDO/df_quimio_respaldo.csv'
+df_quimio.to_csv(path_or_buf=ruta)
