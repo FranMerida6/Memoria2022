@@ -1,0 +1,348 @@
+print('Comienzo de SICI')
+#SICI.
+import pyodbc
+import cx_Oracle
+import pandas as pd
+
+
+#Importar base de datos.
+ruta_importacion='C:/Users/edgar/Downloads/RESPALDO/df_quimio_respaldo.csv'
+df_quimio=pd.read_csv(ruta_importacion)
+
+
+
+#Cambiar columnas a string y eliminar espacios.
+lista_inicial=['NUM_DOC_IDENTIFICA','NOMBRE_PAC','FECHA_CREACION',
+               'DESC_DIAG','ESQUEMA','EDAD','ETAPA']
+j=0
+while j<len(lista_inicial):
+    #Cambiar las columnas de texto a string.
+    lista=[]
+    i=0
+    while i<len(df_quimio):
+        lista.append(str(df_quimio[lista_inicial[j]][i]))
+        i=i+1
+    df_quimio[lista_inicial[j]]=lista
+    print(lista_inicial[j])
+    #Eliminar los espacios innecesarios.
+    nueva_lista=[]
+    i=0
+    while i<len(df_quimio):
+        cadena=df_quimio[lista_inicial[j]][i]
+        cadena_limpia=cadena.strip()
+        nueva_lista.append(cadena_limpia)
+        i=i+1
+    df_quimio[lista_inicial[j]]=nueva_lista
+    j=j+1
+
+print('Ya se transformaron a string las columnas')
+
+
+#Conocer los tipos de ETAPAS que hay.
+#tipos=[]
+#palabra='ETAPA'
+#i=0
+#while i<len(df_quimio):
+#    if df_quimio[palabra][i] not in tipos:
+#        tipos.append(df_quimio[palabra][i])
+#        i=i+1
+#    else:
+#        i=i+1
+#len(tipos)
+#tipos
+
+
+#Cambiar el nombre de las etapas de cáncer.
+lista_etapa=[]
+i=0
+while i<len(df_quimio):
+    if df_quimio['ETAPA'][i]=='I V':
+        lista_etapa.append('IV')
+        i=i+1
+    else:
+        if df_quimio['ETAPA'][i]=='I I I':
+            lista_etapa.append('III')
+            i=i+1
+        else:
+            if df_quimio['ETAPA'][i]=='I I':
+                lista_etapa.append('II')
+                i=i+1
+            else:
+                lista_etapa.append(df_quimio['ETAPA'][i])
+                i=i+1
+df_quimio['ETAPA']=lista_etapa
+
+
+
+#Conocer los tipos de ETAPAS que hay.
+#tipos_2=[]
+#palabra='ETAPA_2'
+#i=0
+#while i<len(df_quimio):
+##    if df_quimio[palabra][i] not in tipos_2:
+#        tipos_2.append(df_quimio[palabra][i])
+#        i=i+1
+#    else:
+##        i=i+1
+#len(tipos_2)
+#tipos_2
+
+
+
+
+
+
+#Cambiar la columna CANTIDAD_DE_CICLOS a string.
+cant_ciclos=[]
+i=0
+while i<len(df_quimio):
+    cant_ciclos.append((str(df_quimio['CANTIDAD_DE_CICLOS'][i]))[:-2])
+    i=i+1
+df_quimio['CANTIDAD_DE_CICLOS']=cant_ciclos
+#Cambiar la columna CICLOS_REALIZADOS a string.
+ciclos=[]
+i=0
+while i<len(df_quimio):
+    ciclos.append((str(df_quimio['CICLOS_REALIZADOS'][i]))[:-2])
+    i=i+1
+df_quimio['CICLOS_REALIZADOS']=ciclos
+
+
+
+
+
+
+
+
+
+#Cambio de formato de RUT.
+modificado=[]
+i=0
+while i<len(df_quimio):
+    if '-' in df_quimio['NUM_DOC_IDENTIFICA'][i]:
+        modificado.append(df_quimio['NUM_DOC_IDENTIFICA'][i][:-2])
+        i=i+1
+    else:
+        modificado.append(df_quimio['NUM_DOC_IDENTIFICA'][i])
+        i=i+1
+df_quimio['NUM_DOC_IDENTIFICA']=modificado
+#Primero quiero ver cuántos valores son números.
+lista_indices=[]
+i=0
+while i<len(df_quimio):
+    if df_quimio['NUM_DOC_IDENTIFICA'][i].isdigit()==False:
+        lista_indices.append(i)
+        i=i+1
+    else:
+        i=i+1
+#Ahora quiero eliminar esas filas.
+df_quimio=df_quimio.drop(lista_indices,axis=0,index=None,columns=None,level=None,inplace=False,errors='raise')
+#Hay que resetear los índices.
+df_quimio.index=range(df_quimio.shape[0])
+#Cambiar la columna NUM_DOC_IDENTIFICA a int.
+rut_int=[]
+i=0
+while i<len(df_quimio):
+    rut_int.append(int(df_quimio['NUM_DOC_IDENTIFICA'][i]))
+    i=i+1
+df_quimio['NUM_DOC_IDENTIFICA']=rut_int
+
+
+
+
+
+
+
+
+
+
+#Dejar columna EDAD en formato int.
+edad=[]
+i=0
+while i<len(df_quimio):
+    if df_quimio['EDAD'][i]=='nan':
+        edad.append(df_quimio['EDAD'][i])
+        i=i+1
+    else:
+        edad.append(int(df_quimio['EDAD'][i][:-2]))
+        i=i+1
+df_quimio['EDAD']=edad
+
+
+
+#Ahora hay que ordenar la data.
+df_quimio=df_quimio.sort_values(['NUM_DOC_IDENTIFICA',
+                                 'FECHA_CREACION','ESQUEMA'],
+                                ascending=True,ignore_index=True)
+
+
+
+#Obtención del macro evento.
+lista_macro_evento=[]
+i=0
+while i<len(df_quimio):
+    lista_macro_evento.append('Plan quimioterapia')
+    i=i+1
+df_quimio['MACRO_EVENTO']=lista_macro_evento
+df_quimio=df_quimio[['NUM_DOC_IDENTIFICA','NOMBRE_PAC','EDAD',
+                     'FECHA_CREACION','MACRO_EVENTO',
+                     'CIE_DIAG','DESC_DIAG',
+                     'ESQUEMA','CANTIDAD_DE_CICLOS',
+                     'CICLOS_REALIZADOS','PREVISION_ACTUAL',
+                     'PLAN_ACTUAL','ETAPA']]
+
+
+
+
+#Obtención del evento.
+lista_evento=[]
+i=0
+while i<len(df_quimio):
+  if i==len(df_quimio)-1:
+    lista_evento.append(df_quimio['ESQUEMA'][i]+' ('+df_quimio['CANTIDAD_DE_CICLOS'][i]+'/'+df_quimio['CICLOS_REALIZADOS'][i]+')')
+    break
+  else:
+    if df_quimio['NUM_DOC_IDENTIFICA'][i]==df_quimio['NUM_DOC_IDENTIFICA'][i+1] and df_quimio['FECHA_CREACION'][i]==df_quimio['FECHA_CREACION'][i+1]:
+      evento=df_quimio['ESQUEMA'][i]+' ('+df_quimio['CANTIDAD_DE_CICLOS'][i]+'/'+df_quimio['CICLOS_REALIZADOS'][i]+')'
+      j=i+1
+      while j<len(df_quimio):
+        if j==len(df_quimio)-1:
+          evento=evento+', '+df_quimio['ESQUEMA'][j]+' ('+df_quimio['CANTIDAD_DE_CICLOS'][j]+'/'+df_quimio['CICLOS_REALIZADOS'][j]+')'
+          lista_evento.append(evento)
+          while i<j:
+            lista_evento.append('')
+            i=i+1
+          i=j+1
+          break
+        else:
+          if df_quimio['NUM_DOC_IDENTIFICA'][j]==df_quimio['NUM_DOC_IDENTIFICA'][j+1] and df_quimio['FECHA_CREACION'][j]==df_quimio['FECHA_CREACION'][j+1]:
+            evento=evento+', '+df_quimio['ESQUEMA'][j]+' ('+df_quimio['CANTIDAD_DE_CICLOS'][j]+'/'+df_quimio['CICLOS_REALIZADOS'][j]+')'
+            j=j+1
+          else:
+            evento=evento+', '+df_quimio['ESQUEMA'][j]+' ('+df_quimio['CANTIDAD_DE_CICLOS'][j]+'/'+df_quimio['CICLOS_REALIZADOS'][j]+')'
+            lista_evento.append(evento)
+            while i<j:
+              lista_evento.append('')
+              i=i+1
+            i=j+1
+            break
+    else:
+      lista_evento.append(df_quimio['ESQUEMA'][i]+' ('+df_quimio['CANTIDAD_DE_CICLOS'][i]+'/'+df_quimio['CICLOS_REALIZADOS'][i]+')')
+      i=i+1
+df_quimio['EVENTO']=lista_evento
+
+
+
+#Creación de columna de DETALLE_PRESTACIONES.
+lista_evento=[]
+i=0
+while i<len(df_quimio):
+  if i==len(df_quimio)-1:
+    lista_evento.append('Descripción del diagnóstico: '+df_quimio['DESC_DIAG'][i])
+    break
+  else:
+    if df_quimio['NUM_DOC_IDENTIFICA'][i]==df_quimio['NUM_DOC_IDENTIFICA'][i+1] and df_quimio['FECHA_CREACION'][i]==df_quimio['FECHA_CREACION'][i+1]:
+      lista_evento.append('Descripción del diagnóstico: '+df_quimio['DESC_DIAG'][i])
+      j=i+1
+      while j<len(df_quimio):
+        if j==len(df_quimio)-1:
+          while i<j:
+            lista_evento.append('')
+            i=i+1
+          i=j+1
+          break
+        else:
+          if df_quimio['NUM_DOC_IDENTIFICA'][j]==df_quimio['NUM_DOC_IDENTIFICA'][j+1] and df_quimio['FECHA_CREACION'][j]==df_quimio['FECHA_CREACION'][j+1]:
+            j=j+1
+          else:
+            while i<j:
+              lista_evento.append('')
+              i=i+1
+            i=j+1
+            break
+    else:
+      lista_evento.append('Descripción del diagnóstico: '+df_quimio['DESC_DIAG'][i])
+      i=i+1
+df_quimio['DETALLE_PRESTACIONES']=lista_evento
+
+df_quimio=df_quimio[['NUM_DOC_IDENTIFICA','NOMBRE_PAC','EDAD',
+                     'FECHA_CREACION','DESC_DIAG','ETAPA','MACRO_EVENTO','EVENTO',
+                     'DETALLE_PRESTACIONES']]
+
+
+
+
+
+#Encontrar índices de filas que contienen vacío en sus celdas.
+#Eliminación de filas con celdas vacías en columna EVENTO.
+df_quimio=df_quimio.drop(df_quimio[df_quimio['EVENTO']==''].index)
+#Reordenamiento de los identificadores únicos que Python asigna a cada registro.
+df_quimio.index=range(df_quimio.shape[0])
+
+
+
+
+#Agregar columnas FECHA_NACIMIENTO, EDAD, SEXO, FOLIO, EVENTO, NETO, IVA,
+#C_ONCOLOGICO, PREVISION, CONVENIO, REGION, CIUDAD, COMUNA.
+lista_fecha_nacimiento=[]
+lista_sexo=[]
+lista_folio=[]
+lista_hora=[]
+lista_neto=[]
+lista_iva=[]
+lista_oncologico=[]
+lista_prevision=[]
+lista_convenio=[]
+lista_region=[]
+lista_ciudad=[]
+lista_comuna=[]
+i=0
+while i<len(df_quimio):
+    lista_fecha_nacimiento.append('')
+    lista_sexo.append('')
+    lista_folio.append(0)
+    lista_hora.append('00:00:00')
+    lista_neto.append(0)
+    lista_iva.append(0)
+    lista_oncologico.append('')
+    lista_prevision.append('')
+    lista_convenio.append('')
+    lista_region.append('')
+    lista_ciudad.append('')
+    lista_comuna.append('')
+    i=i+1
+df_quimio['FECHA_NACIMIENTO']=lista_fecha_nacimiento
+df_quimio['SEXO']=lista_sexo
+df_quimio['FOLIO']=lista_folio
+df_quimio['HORA']=lista_hora
+df_quimio['NETO']=lista_neto
+df_quimio['IVA']=lista_iva
+df_quimio['C_ONCOLOGICO']=lista_oncologico
+df_quimio['PREVISION']=lista_prevision
+df_quimio['CONVENIO']=lista_convenio
+df_quimio['REGION']=lista_region
+df_quimio['CIUDAD']=lista_ciudad
+df_quimio['COMUNA']=lista_comuna
+
+
+
+df_quimio=df_quimio[['NUM_DOC_IDENTIFICA','NOMBRE_PAC','FECHA_NACIMIENTO',
+                     'EDAD','SEXO','FOLIO','FECHA_CREACION','HORA',
+                     'DESC_DIAG','ETAPA','MACRO_EVENTO','EVENTO','DETALLE_PRESTACIONES',
+                     'NETO','IVA','C_ONCOLOGICO','PREVISION','CONVENIO','REGION',
+                     'CIUDAD','COMUNA']]
+
+df_quimio.columns=['RUT','NOMBRE','FECHA_NACIMIENTO','EDAD','SEXO','FOLIO',
+                 'FECHA_EVENTO','HORA',
+                 'DIAGNOSTICO','ETAPA','MACRO_EVENTO','EVENTO','DETALLE_PRESTACIONES',
+                 'NETO','IVA','C_ONCOLOGICO','PREVISION','CONVENIO','REGION',
+                 'CIUDAD','COMUNA']
+
+
+#Ahora hay que ordenar la data.
+df_quimio=df_quimio.sort_values(['RUT','FECHA_EVENTO'],
+                                ascending=True,ignore_index=True)
+
+
+ruta_exportacion='C:/Users/edgar/Downloads/EVENTOS_2/df_quimio_eventos_2.csv'
+df_quimio.to_csv(path_or_buf=ruta_exportacion)
